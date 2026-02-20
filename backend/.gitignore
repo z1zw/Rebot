@@ -1,0 +1,19 @@
+# Python runtime
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local env files
+.env
+.env.*
+!.env.example
+
+# Generated runtime data
+.rebot/devserver/
+.rebot/checkpoints/
+.rebot/memory/
+**/.rebot/devserver/
+**/.rebot/checkpoints/
+**/.rebot/memory/
+workspace/
