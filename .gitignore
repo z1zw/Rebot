@@ -46,8 +46,8 @@ backend/.env.*
 !backend/.env.example
 
 # Runtime artifacts
-workspace/
-backend/workspace/
+/workspace/
+/backend/workspace/
 backend/.rebot/devserver/
 backend/.rebot/checkpoints/
 backend/.rebot/memory/
