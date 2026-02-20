@@ -1,4 +1,4 @@
-import "dart:async";
+﻿import "dart:async";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:provider/provider.dart";
@@ -244,8 +244,8 @@ class _AgentListHeader extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  const Color(0xFF10A37F).withOpacity(0.25),
-                  const Color(0xFF10A37F).withOpacity(0.35),
+                  const Color(0xFF10A37F).withValues(alpha: 0.25),
+                  const Color(0xFF10A37F).withValues(alpha: 0.35),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -335,18 +335,6 @@ class _SearchField extends StatefulWidget {
 }
 
 class _SearchFieldState extends State<_SearchField> {
-  bool _focused = false;
-
-  @override
-  void initState() {
-    super.initState();
-    widget.focusNode.addListener(_onFocusChange);
-  }
-
-  void _onFocusChange() {
-    setState(() => _focused = widget.focusNode.hasFocus);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -712,7 +700,7 @@ class _ImportButtonState extends State<_ImportButton> {
         width: 120,
         height: 42,
         decoration: BoxDecoration(
-          color: const Color(0xFF10A37F).withOpacity(0.2),
+          color: const Color(0xFF10A37F).withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(8),
         ),
         child: const Center(
@@ -743,7 +731,7 @@ class _ImportButtonState extends State<_ImportButton> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.download, size: 18, color: Colors.white.withOpacity(_hovered ? 1 : 0.9)),
+              Icon(Icons.download, size: 18, color: Colors.white.withValues(alpha: _hovered ? 1 : 0.9)),
               const SizedBox(width: 8),
               const Text(
                 "Import",
@@ -864,10 +852,10 @@ class _AnimatedStatCardState extends State<_AnimatedStatCard> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         decoration: BoxDecoration(
-          color: _hovered ? widget.color.withOpacity(0.1) : const Color(0xFF1E1E1E),
+          color: _hovered ? widget.color.withValues(alpha: 0.1) : const Color(0xFF1E1E1E),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: _hovered ? widget.color.withOpacity(0.3) : const Color(0xFF2A2A2A),
+            color: _hovered ? widget.color.withValues(alpha: 0.3) : const Color(0xFF2A2A2A),
           ),
         ),
         child: Column(
@@ -944,7 +932,7 @@ class _FileChipState extends State<_FileChip> {
         decoration: BoxDecoration(
           color: _hovered ? const Color(0xFF333333) : const Color(0xFF262626),
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: _hovered ? const Color(0xFF10A37F).withOpacity(0.3) : Colors.transparent),
+          border: Border.all(color: _hovered ? const Color(0xFF10A37F).withValues(alpha: 0.3) : Colors.transparent),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -1080,3 +1068,4 @@ class _AgentCardState extends State<_AgentCard> {
     );
   }
 }
+

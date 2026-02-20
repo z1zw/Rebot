@@ -28,9 +28,10 @@ async def list_files(req: FileListRequest):
     tool = ListFilesTool()
     content = tool.run({"path": req.workspace, "max_depth": req.max_depth})
     files = [line for line in content.splitlines() if line]
+    resolved = str(Path(req.workspace).resolve())
     if not req.tree:
-        return {"files": files}
-    return {"tree": _build_tree(files)}
+        return {"files": files, "workspace_resolved": resolved}
+    return {"tree": _build_tree(files), "workspace_resolved": resolved}
 
 
 @router.post("/files/repair")

@@ -225,6 +225,6 @@ class _KeyboardNavigableState extends State<KeyboardNavigable> {
 
 class ScreenReaderAnnounce {
   static void announce(BuildContext context, String message) {
-    SemanticsService.announce(message, TextDirection.ltr);
+    SemanticsService.sendAnnouncement(View.of(context), message, TextDirection.ltr);
   }
 }

@@ -1,4 +1,4 @@
-import "package:flutter/material.dart";
+﻿import "package:flutter/material.dart";
 import "package:rebot_agentgpt/views/editor/code_editor.dart";
 
 class EditorModeBar extends StatelessWidget {
@@ -75,7 +75,7 @@ class _DiffToggleChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFF10A37F).withOpacity(0.16) : const Color(0xFF2B2D30),
+          color: selected ? const Color(0xFF10A37F).withValues(alpha: 0.16) : const Color(0xFF2B2D30),
           borderRadius: BorderRadius.circular(6),
           border: Border.all(
             color: selected ? const Color(0xFF10A37F) : const Color(0xFF3C3F41),
@@ -93,3 +93,4 @@ class _DiffToggleChip extends StatelessWidget {
     );
   }
 }
+

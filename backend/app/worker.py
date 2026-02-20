@@ -38,8 +38,10 @@ from app.core.events import get_event_bus
 from app.intel.repo_map import RepoMapBuilder
 from app.intel.ast_index import ASTCodeIndexer
 from app.intel.experience_memory import ExperienceMemory
+from app.intel.failure_memory import FailureMemory
 from app.orchestration.multi_agent_scheduler import MultiAgentScheduler
 from app.core.smoke_gate import run_framework_smoke_check
+from app.core.smoke_rework import build_smoke_rework_task, detect_environment_blockers
 from app.core.llm_routing import normalize_llm_selection
 from app.core.executions import (
     ExecutionStore,
@@ -52,6 +54,44 @@ from app.core.executions import (
     STATUS_CANCELLED,
 )
 from app.core.settings import settings
+
+
+def _is_game_task(task: str) -> bool:
+    text = (task or "").strip().lower()
+    if not text:
+        return False
+    keywords = (
+        "game",
+        "小游戏",
+        "游戏",
+        "arcade",
+        "maze",
+        "platformer",
+        "shooter",
+        "runner",
+        "puzzle",
+    )
+    return any(k in text for k in keywords)
+
+
+def _augment_game_task_for_production(task: str) -> str:
+    base = (task or "").strip()
+    contract = (
+        "PRODUCTION_GAME_CONTRACT\n"
+        "- Build a polished, visually strong, interactive web game (not static document).\n"
+        "- Use canvas or DOM game loop with clear state transitions: idle/running/paused/win/lose.\n"
+        "- Keep all DOM ids consistent between HTML and JS. Never reference missing ids.\n"
+        "- Include responsive layout, modern styling, readable typography, and clear controls.\n"
+        "- Define explicit visual tokens (color/spacing/radius/shadow/typography), not browser defaults.\n"
+        "- Use multi-tab/segmented UI sections (e.g., Play/Guide/Stats/Settings) for production information architecture.\n"
+        "- Avoid plain white background; use layered gradients or rich surfaces with clear hierarchy.\n"
+        "- Ensure buttons/cards/hud have polished states (hover/active/disabled) and cohesive palette.\n"
+        "- Provide complete runnable files with no placeholders and no pseudo-code.\n"
+        "- Validate runtime wiring before returning: controls work, score/life/time update, restart works.\n"
+    )
+    if "PRODUCTION_GAME_CONTRACT" in base:
+        return base
+    return f"{base}\n\n{contract}"
 
 
 @dataclass
@@ -859,6 +899,7 @@ async def _run_execution_multi_agent(run_id: str, data: dict[str, object]) -> No
 
     memory_hits: list[str] = []
     memory: ExperienceMemory | None = None
+    failure_memory = FailureMemory(workspace_root / ".rebot" / "memory")
     if use_memory:
         memory_timeout_s = max(3.0, float(os.getenv("REBOT_MEMORY_QUERY_TIMEOUT_S", "12")))
         try:
@@ -880,6 +921,17 @@ async def _run_execution_multi_agent(run_id: str, data: dict[str, object]) -> No
             memory = None
             memory_hits = []
             await _emit("console_log", {"text": f"[memory] unavailable: {exc}", "level": "warning"})
+    try:
+        playbook_hits = failure_memory.query(
+            query=str(data.get("task") or ""),
+            framework=str(data.get("framework") or ""),
+            top_k=3,
+        )
+    except Exception:
+        playbook_hits = []
+    if playbook_hits:
+        memory_hits.extend(playbook_hits)
+        await _emit("console_log", {"text": f"[failure_playbook] loaded {len(playbook_hits)} hint(s)", "level": "info"})
 
     resume_checkpoint: dict[str, object] | None = None
     resume_from = str(data.get("resume_from_run_id") or "").strip()
@@ -931,6 +983,13 @@ async def _run_execution_multi_agent(run_id: str, data: dict[str, object]) -> No
     attempt = 0
     plan_result: dict[str, object] = {}
     generated_paths: list[str] = []
+    base_task = str(data.get("task") or "")
+    scheduler_framework = str(data.get("framework") or "") if data.get("framework") else None
+    task_for_generation = base_task
+    if (scheduler_framework or "").strip().lower() in {"", "general"} and _is_game_task(base_task):
+        task_for_generation = _augment_game_task_for_production(base_task)
+        scheduler_framework = "html"
+        await _emit("console_log", {"text": "[task_policy] general+game detected, forcing html production game contract", "level": "info"})
 
     while True:
         backups: dict[Path, tuple[bool, str]] = {}
@@ -940,20 +999,20 @@ async def _run_execution_multi_agent(run_id: str, data: dict[str, object]) -> No
             ExecutionStore.update(run_id, stage="planner", progress=f"Multi-agent planning attempt {attempt}...")
             if resume_checkpoint is not None:
                 plan_result = await scheduler.run_from_checkpoint(
-                    task=str(data.get("task") or ""),
+                    task=task_for_generation,
                     repo_map=repo_map_text,
                     ast_context=ast_context_text,
                     memory_hints=memory_hits,
                     checkpoint=resume_checkpoint,
-                    framework=str(data.get("framework") or "") if data.get("framework") else None,
+                    framework=scheduler_framework,
                 )
             else:
                 plan_result = await scheduler.run(
-                    task=str(data.get("task") or ""),
+                    task=task_for_generation,
                     repo_map=repo_map_text,
                     ast_context=ast_context_text,
                     memory_hints=memory_hits,
-                    framework=str(data.get("framework") or "") if data.get("framework") else None,
+                    framework=scheduler_framework,
                 )
 
             ExecutionStore.update(run_id, stage="implement", progress="Applying generated artifacts...")
@@ -986,12 +1045,24 @@ async def _run_execution_multi_agent(run_id: str, data: dict[str, object]) -> No
                 await _emit("assistant_message", review_summary)
 
             if memory is not None:
+                quality_status = str((plan_result.get("quality_gate") or {}).get("final_status") or "")
+                try:
+                    prd_total = float((plan_result.get("prd_score") or {}).get("total") or 0.0)
+                except Exception:
+                    prd_total = 0.0
+                try:
+                    visual_total = float((plan_result.get("visual_score") or {}).get("total") or 0.0)
+                except Exception:
+                    visual_total = 0.0
                 memory.add(
                     query=str(data.get("task") or ""),
                     resolution=(
                         f"generated_files={len(generated_paths)}\n"
                         f"files={generated_paths[:80]}\n"
-                        f"review={review_summary[:2000]}"
+                        f"review={review_summary[:2000]}\n"
+                        f"quality={quality_status}\n"
+                        f"prd_total={prd_total}\n"
+                        f"visual_total={visual_total}"
                     ),
                     metadata={"run_id": run_id, "mode": "worker_multi_agent"},
                 )
@@ -1027,11 +1098,34 @@ async def _run_execution_multi_agent(run_id: str, data: dict[str, object]) -> No
                 )
                 if smoke_gate.get("ok") is True:
                     break
+                blocking = smoke_gate.get("blocking_issues")
+                blocking_list = [str(x) for x in (list(blocking) if isinstance(blocking, list) else []) if str(x).strip()]
+                failure_memory.add_case(
+                    query=task_for_generation,
+                    framework=effective_framework,
+                    issues=blocking_list,
+                    success=False,
+                    resolution=f"smoke_summary={smoke_gate.get('summary')}",
+                    metadata={"run_id": run_id, "stage": "smoke_gate", "attempt": smoke_attempt},
+                )
                 if smoke_attempt >= smoke_rework_budget:
                     raise RuntimeError(f"Smoke gate failed: {smoke_gate.get('summary')}")
                 smoke_attempt += 1
-                blocking = smoke_gate.get("blocking_issues")
-                blocking_text = "\n".join(f"- {x}" for x in (blocking if isinstance(blocking, list) else []))
+                env_blockers = detect_environment_blockers(blocking_list)
+                if env_blockers:
+                    env_text = "; ".join(env_blockers[:6])
+                    failure_memory.add_case(
+                        query=task_for_generation,
+                        framework=effective_framework,
+                        issues=[str(x) for x in env_blockers],
+                        success=False,
+                        resolution="environment blocker detected",
+                        metadata={"run_id": run_id, "stage": "smoke_gate", "attempt": smoke_attempt},
+                    )
+                    raise RuntimeError(
+                        "Smoke gate failed due to missing runtime environment dependencies: "
+                        f"{env_text}. Install required runtimes in backend environment first."
+                    )
                 await _emit(
                     "console_log",
                     {
@@ -1039,18 +1133,20 @@ async def _run_execution_multi_agent(run_id: str, data: dict[str, object]) -> No
                         "level": "warning",
                     },
                 )
-                rework_task = (
-                    f"{str(data.get('task') or '')}\n\n"
-                    "RUNTIME_SMOKE_FAILURES\n"
-                    f"{blocking_text or '- unknown runtime failure'}\n\n"
-                    "Fix all blocking runtime issues and return a fully runnable project."
+                rework_task = build_smoke_rework_task(
+                    base_task=task_for_generation,
+                    framework=effective_framework,
+                    blocking_issues=blocking_list,
+                    attempt=smoke_attempt,
+                    budget=smoke_rework_budget,
+                    is_game=_is_game_task(task_for_generation),
                 )
                 plan_result = await scheduler.run(
                     task=rework_task,
                     repo_map=repo_map_text,
                     ast_context=ast_context_text,
                     memory_hints=memory_hits,
-                    framework=str(data.get("framework") or "") if data.get("framework") else None,
+                    framework=scheduler_framework,
                 )
                 # Re-apply rewritten artifacts before next smoke check.
                 artifacts = plan_result.get("artifacts") if isinstance(plan_result, dict) else None
@@ -1077,6 +1173,18 @@ async def _run_execution_multi_agent(run_id: str, data: dict[str, object]) -> No
                     await _emit("file_created", {"path": rel_path, "content": content})
                 effective_framework = str(plan_result.get("framework") or effective_framework).strip().lower() or effective_framework
             plan_result["smoke_gate"] = smoke_gate
+            failure_memory.add_case(
+                query=task_for_generation,
+                framework=effective_framework,
+                issues=[str(x) for x in (smoke_gate.get("blocking_issues") or []) if str(x).strip()],
+                success=True,
+                resolution=(
+                    f"smoke_summary={smoke_gate.get('summary')}\n"
+                    f"review={review_summary[:900]}\n"
+                    f"quality={str((plan_result.get('quality_gate') or {}).get('final_status') or '')}"
+                ),
+                metadata={"run_id": run_id, "stage": "done", "attempts": smoke_attempt},
+            )
             break
         except Exception as exc:
             # rollback touched files
@@ -1090,6 +1198,14 @@ async def _run_execution_multi_agent(run_id: str, data: dict[str, object]) -> No
                 except Exception:
                     pass
             await _emit("run_progress", f"[rollback] attempt {attempt} rolled back due to error: {exc}")
+            failure_memory.add_case(
+                query=task_for_generation,
+                framework=str(scheduler_framework or ""),
+                issues=[str(exc)],
+                success=False,
+                resolution=f"attempt={attempt} rollback",
+                metadata={"run_id": run_id, "stage": "rollback"},
+            )
             if attempt > retry_budget:
                 ExecutionStore.update(
                     run_id,
@@ -1112,6 +1228,7 @@ async def _run_execution_multi_agent(run_id: str, data: dict[str, object]) -> No
         "budget": plan_result.get("budget"),
         "quality_gate": plan_result.get("quality_gate"),
         "prd_score": plan_result.get("prd_score"),
+        "visual_score": plan_result.get("visual_score"),
         "smoke_gate": plan_result.get("smoke_gate"),
     }
     from app.core.cache import cache
@@ -1134,6 +1251,7 @@ async def _run_execution_multi_agent(run_id: str, data: dict[str, object]) -> No
             "quality_gate_status": str((plan_result.get("quality_gate") or {}).get("final_status") or ""),
             "quality_gate_reworks": int((plan_result.get("quality_gate") or {}).get("auto_reworks") or 0),
             "prd_score_total": float((plan_result.get("prd_score") or {}).get("total") or 0.0),
+            "visual_score_total": float((plan_result.get("visual_score") or {}).get("total") or 0.0),
             "smoke_gate_ok": 1 if (plan_result.get("smoke_gate") or {}).get("ok") else 0,
             "smoke_check_enabled": 1 if smoke_check_enabled else 0,
             "smoke_rework_budget": smoke_rework_budget,

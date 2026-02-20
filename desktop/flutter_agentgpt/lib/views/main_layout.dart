@@ -178,6 +178,10 @@ class _WorkspaceState extends State<Workspace> {
               state.triggerPreviewReload();
             },
             onGitClone: () => _showGitCloneDialog(state),
+            onOpenGit: () => setState(() {
+              _activeView = "git";
+              _settingsOpen = false;
+            }),
             onRetryClone: () => _retryLastClone(state),
             onConsole: () => _openConsole(state),
             onNetwork: () => _openNetwork(state),
@@ -278,18 +282,70 @@ class _WorkspaceState extends State<Workspace> {
   }
 
   Future<void> _runPreview(AppState state) async {
-    final result = await state.startFrameworkServer(framework: state.selectedFramework);
+    final result = await state.runPreviewWithSelfHeal(framework: state.selectedFramework);
     final ok = result["running"] == true;
     if (!mounted) return;
     if (ok) {
+      setState(() {
+        _activeView = "workspace";
+        _rightPanelTab = "preview";
+        _settingsOpen = false;
+      });
+      state.setPreferredRightPanelTab("preview");
+      if (state.isWebPreviewFramework(state.selectedFramework)) {
+        await state.openPreviewInExternalBrowser(url: state.previewUrl);
+        if (!mounted) return;
+      }
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
         const SnackBar(content: Text("Preview started.")),
       );
       return;
     }
-    final reason = (result["reason"] ?? "unknown").toString();
+    final reason = state.previewFailureMessage(result);
+    final logs = (result["devserver_logs"] ?? "").toString();
     ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-      SnackBar(content: Text("Run failed: $reason")),
+      SnackBar(
+        content: Text("Run failed: $reason"),
+        action: logs.trim().isEmpty
+            ? null
+            : SnackBarAction(
+                label: "View Logs",
+                onPressed: () => _showDevserverLogsDialog(logs),
+              ),
+      ),
+    );
+  }
+
+  Future<void> _showDevserverLogsDialog(String logs) async {
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E222A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: Color(0xFF343A46)),
+        ),
+        title: const Text("Devserver Logs"),
+        content: SizedBox(
+          width: 860,
+          height: 520,
+          child: SingleChildScrollView(
+            child: SelectableText(
+              logs.trim().isEmpty ? "No logs available." : logs,
+              style: const TextStyle(
+                fontFamily: "JetBrains Mono",
+                fontSize: 12,
+                color: Color(0xFFDCE4F2),
+                height: 1.35,
+              ),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text("Close")),
+        ],
+      ),
     );
   }
 

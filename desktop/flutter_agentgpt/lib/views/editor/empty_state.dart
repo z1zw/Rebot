@@ -1,4 +1,4 @@
-import "package:flutter/material.dart";
+﻿import "package:flutter/material.dart";
 import "package:rebot_agentgpt/theme/app_tokens.dart";
 
 class EditorEmptyState extends StatelessWidget {
@@ -38,7 +38,7 @@ class EditorEmptyState extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: AppTokens.primary.withOpacity(0.18),
+                  color: AppTokens.primary.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(Icons.auto_awesome, color: AppTokens.primary),
@@ -91,3 +91,4 @@ class EditorEmptyState extends StatelessWidget {
     );
   }
 }
+

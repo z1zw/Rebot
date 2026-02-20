@@ -324,7 +324,7 @@ class _WorkspaceEditorStageState extends State<WorkspaceEditorStage> {
   Future<void> _showSearchFilesDialog(AppState state) async {
     await state.loadFiles();
     if (!mounted) return;
-    final all = <String>[];
+    final all = <String>{};
     void collect(List<FileNode> nodes) {
       for (final n in nodes) {
         if (n.isDir) {
@@ -335,11 +335,18 @@ class _WorkspaceEditorStageState extends State<WorkspaceEditorStage> {
       }
     }
     collect(state.fileTree);
+    for (final file in state.generatedFiles) {
+      final p = file.path.trim().replaceAll("\\", "/");
+      if (p.isNotEmpty) {
+        all.add(p);
+      }
+    }
+    final allFiles = all.toList()..sort();
     final query = await showDialog<String>(
       context: context,
       builder: (ctx) {
         final c = TextEditingController();
-        var filtered = List<String>.from(all);
+        var filtered = List<String>.from(allFiles);
         return StatefulBuilder(builder: (ctx, setDlg) {
           return AlertDialog(
             title: const Text("Search Files"),
@@ -355,8 +362,8 @@ class _WorkspaceEditorStageState extends State<WorkspaceEditorStage> {
                       final q = v.trim().toLowerCase();
                       setDlg(() {
                         filtered = q.isEmpty
-                            ? List<String>.from(all)
-                            : all.where((p) => p.toLowerCase().contains(q)).toList();
+                            ? List<String>.from(allFiles)
+                            : allFiles.where((p) => p.toLowerCase().contains(q)).toList();
                       });
                     },
                     onSubmitted: (v) => Navigator.of(ctx).pop(v),
@@ -387,8 +394,8 @@ class _WorkspaceEditorStageState extends State<WorkspaceEditorStage> {
     );
     final q = (query ?? "").trim().toLowerCase();
     if (q.isEmpty) return;
-    final exact = all.firstWhere((p) => p == query, orElse: () => "");
-    final match = exact.isNotEmpty ? exact : all.firstWhere((p) => p.toLowerCase().contains(q), orElse: () => "");
+    final exact = allFiles.firstWhere((p) => p == query, orElse: () => "");
+    final match = exact.isNotEmpty ? exact : allFiles.firstWhere((p) => p.toLowerCase().contains(q), orElse: () => "");
     if (match.isNotEmpty) {
       await state.readFile(match);
       return;
@@ -401,18 +408,65 @@ class _WorkspaceEditorStageState extends State<WorkspaceEditorStage> {
   }
 
   Future<void> _runPreview(AppState state) async {
-    final result = await state.startFrameworkServer(framework: state.selectedFramework);
+    final result = await state.runPreviewWithSelfHeal(framework: state.selectedFramework);
     final ok = result["running"] == true;
     if (!mounted) return;
     if (ok) {
+      state.setPreferredRightPanelTab("preview");
+      if (state.isWebPreviewFramework(state.selectedFramework)) {
+        await state.openPreviewInExternalBrowser(url: state.previewUrl);
+        if (!mounted) return;
+      }
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
         const SnackBar(content: Text("Preview started.")),
       );
       return;
     }
-    final reason = (result["reason"] ?? "unknown").toString();
+    final reason = state.previewFailureMessage(result);
+    final logs = (result["devserver_logs"] ?? "").toString();
     ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-      SnackBar(content: Text("Run failed: $reason")),
+      SnackBar(
+        content: Text("Run failed: $reason"),
+        action: logs.trim().isEmpty
+            ? null
+            : SnackBarAction(
+                label: "View Logs",
+                onPressed: () => _showDevserverLogsDialog(logs),
+              ),
+      ),
+    );
+  }
+
+  Future<void> _showDevserverLogsDialog(String logs) async {
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E222A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: Color(0xFF343A46)),
+        ),
+        title: const Text("Devserver Logs"),
+        content: SizedBox(
+          width: 860,
+          height: 520,
+          child: SingleChildScrollView(
+            child: SelectableText(
+              logs.trim().isEmpty ? "No logs available." : logs,
+              style: const TextStyle(
+                fontFamily: "JetBrains Mono",
+                fontSize: 12,
+                color: Color(0xFFDCE4F2),
+                height: 1.35,
+              ),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text("Close")),
+        ],
+      ),
     );
   }
 }

@@ -1,4 +1,4 @@
-import "dart:async";
+﻿import "dart:async";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:provider/provider.dart";
@@ -66,6 +66,7 @@ class _HistoryViewState extends State<HistoryView> {
   Future<void> _cancelExecution(String id) async {
     final state = context.read<AppState>();
     final ok = await state.api.cancelExecution(id);
+    if (!mounted) return;
     if (ok) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Execution cancelled"), backgroundColor: Color(0xFF10A37F)),
@@ -159,7 +160,7 @@ class _HistoryHeader extends StatelessWidget {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: const Color(0xFF10A37F).withOpacity(0.15),
+              color: const Color(0xFF10A37F).withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(Icons.history, color: Color(0xFF10A37F), size: 18),
@@ -188,9 +189,9 @@ class _HistoryHeader extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFFFACC15).withOpacity(0.2),
+                color: const Color(0xFFFACC15).withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFFACC15).withOpacity(0.3)),
+                border: Border.all(color: const Color(0xFFFACC15).withValues(alpha: 0.3)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -351,13 +352,13 @@ class _FilterTabState extends State<_FilterTab> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             color: widget.selected
-                ? color.withOpacity(0.15)
+                ? color.withValues(alpha: 0.15)
                 : _hovered
                     ? const Color(0xFF2A2A2A)
                     : Colors.transparent,
             borderRadius: BorderRadius.circular(6),
             border: widget.selected
-                ? Border.all(color: color.withOpacity(0.3))
+                ? Border.all(color: color.withValues(alpha: 0.3))
                 : null,
           ),
           child: Row(
@@ -376,7 +377,7 @@ class _FilterTabState extends State<_FilterTab> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: widget.selected ? color.withOpacity(0.2) : const Color(0xFF333333),
+                    color: widget.selected ? color.withValues(alpha: 0.2) : const Color(0xFF333333),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
@@ -527,7 +528,7 @@ class _ExecutionCardState extends State<_ExecutionCard> {
                             width: 28,
                             height: 28,
                             decoration: BoxDecoration(
-                              color: _statusColor.withOpacity(0.15),
+                              color: _statusColor.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Icon(_statusIcon, size: 14, color: _statusColor),
@@ -571,7 +572,7 @@ class _ExecutionCardState extends State<_ExecutionCard> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: _statusColor.withOpacity(0.12),
+                              color: _statusColor.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
@@ -690,9 +691,9 @@ class _SmallButtonState extends State<_SmallButton> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: _hovered ? widget.color.withOpacity(0.2) : widget.color.withOpacity(0.1),
+            color: _hovered ? widget.color.withValues(alpha: 0.2) : widget.color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: widget.color.withOpacity(_hovered ? 0.5 : 0.2)),
+            border: Border.all(color: widget.color.withValues(alpha: _hovered ? 0.5 : 0.2)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -714,3 +715,4 @@ class _SmallButtonState extends State<_SmallButton> {
     );
   }
 }
+

@@ -1,4 +1,4 @@
-import "package:flutter/material.dart";
+﻿import "package:flutter/material.dart";
 import "package:rebot_agentgpt/app_state.dart";
 import "package:rebot_agentgpt/theme/app_tokens.dart";
 
@@ -144,7 +144,7 @@ class _FileNodeTile extends StatelessWidget {
       child: Container(
         padding: EdgeInsets.fromLTRB(10 + depth * 14, 4, 8, 4),
         decoration: BoxDecoration(
-          color: active ? AppTokens.primary.withOpacity(0.2) : Colors.transparent,
+          color: active ? AppTokens.primary.withValues(alpha: 0.2) : Colors.transparent,
           borderRadius: BorderRadius.circular(AppTokens.radiusSm),
         ),
         child: Row(
@@ -178,3 +178,4 @@ class _FileNodeTile extends StatelessWidget {
     );
   }
 }
+

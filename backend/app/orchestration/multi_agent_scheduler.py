@@ -53,6 +53,7 @@ class ReviewReport:
     notes: str
     scores: dict[str, int]
     blocking_issues: list[str]
+    issues: list[dict[str, str]]
 
 
 class MultiAgentScheduler:
@@ -92,6 +93,17 @@ class MultiAgentScheduler:
             "REBOT_PLANNER_COLLAB_ENABLED",
             "true",
         ).strip().lower() in {"1", "true", "yes", "on"}
+
+    @staticmethod
+    def _failure_playbook_hints(memory_hints: list[str]) -> list[str]:
+        out: list[str] = []
+        for hint in memory_hints or []:
+            text = str(hint or "").strip()
+            if not text:
+                continue
+            if text.lower().startswith("failure_playbook"):
+                out.append(text)
+        return out[:6]
 
     async def run(
         self,
@@ -320,6 +332,11 @@ class MultiAgentScheduler:
             plan=plan,
             artifacts=artifacts,
         )
+        visual_score = self._score_visual_delivery(
+            framework=inferred_framework,
+            artifacts=artifacts,
+            task_guidance=task_guidance,
+        )
         await self.emit("console_log", {"text": f"[integration] {integration}", "level": "default"})
         await self.emit(
             "prd_score",
@@ -327,6 +344,14 @@ class MultiAgentScheduler:
                 "total": prd_score.get("total"),
                 "verdict": prd_score.get("verdict"),
                 "scores": prd_score.get("scores"),
+            },
+        )
+        await self.emit(
+            "visual_score",
+            {
+                "total": visual_score.get("total"),
+                "verdict": visual_score.get("verdict"),
+                "scores": visual_score.get("scores"),
             },
         )
         await self._save_checkpoint(
@@ -341,6 +366,7 @@ class MultiAgentScheduler:
                 "integration": integration,
                 "self_check": verify_summary,
                 "prd_score": prd_score,
+                "visual_score": visual_score,
             },
         )
 
@@ -354,6 +380,7 @@ class MultiAgentScheduler:
             "self_check": verify_summary,
             "quality_gate": dict(self._last_quality_gate),
             "prd_score": prd_score,
+            "visual_score": visual_score,
             "ast_context_used": bool((ast_context or "").strip()),
             "ast_dep_links_added": int(ast_dep_stats.get("added_links", 0)),
             "budget": {
@@ -494,12 +521,25 @@ class MultiAgentScheduler:
             plan=plan,
             artifacts=artifacts,
         )
+        visual_score = self._score_visual_delivery(
+            framework=inferred_framework,
+            artifacts=artifacts,
+            task_guidance=task_guidance,
+        )
         await self.emit(
             "prd_score",
             {
                 "total": prd_score.get("total"),
                 "verdict": prd_score.get("verdict"),
                 "scores": prd_score.get("scores"),
+            },
+        )
+        await self.emit(
+            "visual_score",
+            {
+                "total": visual_score.get("total"),
+                "verdict": visual_score.get("verdict"),
+                "scores": visual_score.get("scores"),
             },
         )
         await self._save_checkpoint(
@@ -514,6 +554,7 @@ class MultiAgentScheduler:
                 "integration": integration,
                 "self_check": verify_summary,
                 "prd_score": prd_score,
+                "visual_score": visual_score,
             },
         )
         return {
@@ -526,6 +567,7 @@ class MultiAgentScheduler:
             "self_check": verify_summary,
             "quality_gate": dict(self._last_quality_gate),
             "prd_score": prd_score,
+            "visual_score": visual_score,
             "ast_context_used": bool((ast_context or "").strip()),
             "ast_dep_links_added": 0,
             "budget": {
@@ -584,6 +626,12 @@ class MultiAgentScheduler:
             "No markdown."
         )
         memory_context = "\n---\n".join(memory_hints[:4]).strip() or "No relevant memory."
+        failure_hints = self._failure_playbook_hints(memory_hints)
+        failure_context = (
+            "\n".join(f"- {h}" for h in failure_hints)
+            if failure_hints
+            else "- no known recurring blockers"
+        )
         user = (
             build_structural_context(
                 user_requirement=task,
@@ -591,6 +639,8 @@ class MultiAgentScheduler:
                 plan_summary="List project files and their dependencies.",
                 context=memory_context,
             )
+            + "\nFAILURE_PLAYBOOK\n"
+            + failure_context
             + "\nAST_CONTEXT\n"
             + (ast_context or "No AST context.")
             + "\nGUIDANCE\n"
@@ -598,6 +648,7 @@ class MultiAgentScheduler:
                 "General requirement: runnable startup + responsive UI + no TODO placeholders + FULL INTERACTIVITY.\n"
                 "For games: must include game state, input handling, game loop, win/lose conditions, score system.\n"
                 "For apps: must include state management, event handlers, complete user flows.\n"
+                "Must proactively avoid FAILURE_PLAYBOOK blockers in architecture and file plan.\n"
                 f"Task guidance: {task_guidance.guidance}"
             )
             + "\n\n"
@@ -812,6 +863,12 @@ class MultiAgentScheduler:
                     framework_instruction = "GENERAL MODE: Generate code using the most appropriate technology for this file."
                 else:
                     framework_instruction = f"MANDATORY FRAMEWORK: {framework.upper()} - You MUST generate {framework} code ONLY. Do NOT use any other framework."
+                failure_hints = self._failure_playbook_hints(memory_hints)
+                failure_context = (
+                    "\n".join(f"- {h}" for h in failure_hints)
+                    if failure_hints
+                    else "- no known recurring blockers"
+                )
                 system = (
                     "You are Coder Agent.\n"
                     f"{framework_instruction}\n"
@@ -824,23 +881,51 @@ class MultiAgentScheduler:
                     "- For apps: implement COMPLETE business logic (state management, event handlers, user flows).\n"
                     "- NEVER generate static UI without interaction handlers.\n"
                     "- Every button/touch target MUST have a working handler.\n"
+                    "- VISUAL QUALITY: avoid plain white/default page; define clear color system and polished layout hierarchy.\n"
+                    "- VISUAL QUALITY: include meaningful backgrounds, card/button styles, spacing rhythm, and readable typography.\n"
                     "- The result must be immediately playable/usable, not a mockup.\n"
                     "No markdown code fences."
                 )
-                user = (
+                base_user = (
                     f"TASK:\n{task}\n\n"
                     f"TARGET_FILE: {path}\n"
                     f"DESCRIPTION: {item.description}\n"
                     f"DEPENDENCIES: {', '.join(item.deps) if item.deps else 'none'}\n\n"
                     f"RUNTIME_GUARDRAILS:\n{guardrails}\n\n"
+                    f"FAILURE_PLAYBOOK:\n{failure_context}\n\n"
                     f"REPO_MAP:\n{repo_map}\n\n"
                     f"AST_CONTEXT:\n{ast_context or 'No AST context.'}\n\n"
                     f"MEMORY_HINTS:\n" + "\n---\n".join(memory_hints[:4])
                 )
-                content = await self._call_with_retry(system, user, tag=f"coder:{path}", role="coder")
-                content = self._strip_code_fences(content)
-                artifact = GeneratedArtifact(path=path, description=item.description, content=content)
-                lint_ok, lint_msg = self._lint_artifact(artifact)
+                artifact: GeneratedArtifact | None = None
+                lint_ok = False
+                lint_msg = "not_checked"
+                ext_contract = self._extension_output_contract(path)
+                for regen_attempt in range(1, 4):
+                    user = base_user
+                    if ext_contract:
+                        user += f"\n\nOUTPUT_CONTRACT:\n{ext_contract}\n"
+                    if regen_attempt > 1:
+                        user += (
+                            "\n\nRETRY_REASON:\n"
+                            f"Previous output failed lint for {path}: {lint_msg}\n"
+                            "Regenerate full file content that strictly matches target file type.\n"
+                        )
+                    content = await self._call_with_retry(
+                        system,
+                        user,
+                        tag=f"coder:{path}:attempt:{regen_attempt}",
+                        role="coder",
+                    )
+                    content = self._strip_code_fences(content)
+                    content = self._coerce_content_for_path(path=path, content=content)
+                    candidate = GeneratedArtifact(path=path, description=item.description, content=content)
+                    lint_ok, lint_msg = self._lint_artifact(candidate)
+                    artifact = candidate
+                    if lint_ok:
+                        break
+                if artifact is None:
+                    raise RuntimeError(f"coder failed to produce artifact: {path}")
                 await self.emit(
                     "console_log",
                     {
@@ -848,7 +933,9 @@ class MultiAgentScheduler:
                         "level": "success" if lint_ok else "warning",
                     },
                 )
-                await self.emit("file_done", {"path": path, "status": "done", "content": content})
+                if not lint_ok:
+                    raise RuntimeError(f"lint_hard_gate_failed:{path}:{lint_msg}")
+                await self.emit("file_done", {"path": path, "status": "done", "content": artifact.content})
                 async with lock:
                     results[path] = artifact
                     done_count = len(results)
@@ -957,13 +1044,29 @@ class MultiAgentScheduler:
         framework: str,
         ui_preset: dict[str, Any],
     ) -> ReviewReport:
-        summary = "\n".join(f"- {a.path} ({len(a.content)} chars)" for a in artifacts[:80])
+        summary = "\n".join(
+            f"- {a.path} ({len(a.content)} chars) :: {(a.content or '').strip().replace(chr(10), ' ')[:120]}"
+            for a in artifacts[:60]
+        )
         system = (
             "You are Reviewer Agent.\n"
             "Review executable readiness, responsive adaptation quality, and UI consistency.\n"
             "Return JSON only.\n"
-            "Schema: {\"status\":\"ok|warn|fail\",\"scores\":{\"executable\":0-100,\"responsive\":0-100,\"ui_consistency\":0-100,\"interaction\":0-100},\"summary\":\"...\",\"notes\":\"...\",\"blocking_issues\":[\"...\"]}.\n"
-            "Set status=fail when executable score < 70 or blocking issues exist."
+            "Schema: "
+            "{\"status\":\"ok|warn|fail\","
+            "\"scores\":{\"executable\":0-100,\"responsive\":0-100,\"ui_consistency\":0-100,\"interaction\":0-100,\"information_architecture\":0-100},"
+            "\"summary\":\"...\","
+            "\"notes\":\"...\","
+            "\"blocking_issues\":[\"...\"],"
+            "\"issues\":[{\"path\":\"...\",\"category\":\"runtime|syntax|interaction|responsive|ui|prd\","
+            "\"severity\":\"critical|high|medium|low\",\"reason\":\"...\",\"suggested_fix\":\"...\"}]"
+            "}.\n"
+            "Rules:\n"
+            "- status=fail if executable < 70 or any critical/high issue exists.\n"
+            "- status=warn if medium issues exist but fail conditions not met.\n"
+            "- For web/game tasks, evaluate whether tabbed/segmented information architecture exists and is usable.\n"
+            "- blocking_issues must be plain strings and correspond to critical/high issues.\n"
+            "- issues.path should be exact project file path when possible."
         )
         user = (
             f"TASK:\n{task}\n\n"
@@ -981,6 +1084,15 @@ class MultiAgentScheduler:
                 notes="reviewer_response_not_json",
                 scores={},
                 blocking_issues=["reviewer did not return valid JSON"],
+                issues=[
+                    {
+                        "path": "",
+                        "category": "runtime",
+                        "severity": "critical",
+                        "reason": "reviewer did not return valid JSON",
+                        "suggested_fix": "return schema-compliant JSON review report",
+                    }
+                ],
             )
         status = str(parsed.get("status", "ok")).strip().lower()
         summary = str(parsed.get("summary", "")).strip()
@@ -997,6 +1109,19 @@ class MultiAgentScheduler:
         blocking_issues = []
         if isinstance(blocking_raw, list):
             blocking_issues = [str(x).strip() for x in blocking_raw if str(x).strip()]
+        issues = self._extract_review_issues(parsed=parsed, artifacts=artifacts)
+        for issue in issues:
+            sev = issue.get("severity", "low")
+            reason = issue.get("reason", "")
+            if sev in {"critical", "high"} and reason and reason not in blocking_issues:
+                blocking_issues.append(reason)
+        has_critical = any(i.get("severity") == "critical" for i in issues)
+        has_high = any(i.get("severity") == "high" for i in issues)
+        has_medium = any(i.get("severity") == "medium" for i in issues)
+        if has_critical or has_high:
+            status = "fail"
+        elif has_medium and status == "ok":
+            status = "warn"
         if scores:
             notes = f"scores={scores} | {notes}"
         if not status:
@@ -1006,7 +1131,114 @@ class MultiAgentScheduler:
             notes=notes or raw,
             scores=scores,
             blocking_issues=blocking_issues,
+            issues=issues,
         )
+
+    def _extract_review_issues(
+        self,
+        *,
+        parsed: dict[str, Any],
+        artifacts: list[GeneratedArtifact],
+    ) -> list[dict[str, str]]:
+        raw = parsed.get("issues")
+        out: list[dict[str, str]] = []
+        if isinstance(raw, list):
+            for item in raw:
+                if not isinstance(item, dict):
+                    continue
+                normalized = self._normalize_review_issue(item=item, artifacts=artifacts)
+                if normalized is not None:
+                    out.append(normalized)
+        blocking_raw = parsed.get("blocking_issues")
+        if isinstance(blocking_raw, list):
+            for b in blocking_raw:
+                reason = str(b or "").strip()
+                if not reason:
+                    continue
+                key = reason.lower()
+                exists = any(str(i.get("reason", "")).strip().lower() == key for i in out)
+                if exists:
+                    continue
+                path = self._resolve_review_issue_path(raw_path="", reason=reason, artifacts=artifacts)
+                out.append(
+                    {
+                        "path": path,
+                        "category": "runtime",
+                        "severity": "high",
+                        "reason": reason,
+                        "suggested_fix": "fix blocking runtime issue",
+                    }
+                )
+        dedup: list[dict[str, str]] = []
+        seen: set[str] = set()
+        for item in out:
+            key = f"{item.get('path', '').lower()}::{item.get('reason', '').lower()}"
+            if key in seen:
+                continue
+            seen.add(key)
+            dedup.append(item)
+        return dedup[:60]
+
+    def _normalize_review_issue(
+        self,
+        *,
+        item: dict[str, Any],
+        artifacts: list[GeneratedArtifact],
+    ) -> dict[str, str] | None:
+        category = str(item.get("category") or "runtime").strip().lower()
+        if category not in {"runtime", "syntax", "interaction", "responsive", "ui", "prd"}:
+            category = "runtime"
+        severity = str(item.get("severity") or "medium").strip().lower()
+        if severity not in {"critical", "high", "medium", "low"}:
+            severity = "medium"
+        reason = str(item.get("reason") or item.get("message") or "").strip()
+        if not reason:
+            return None
+        suggested_fix = str(item.get("suggested_fix") or item.get("fix") or "").strip()
+        if not suggested_fix:
+            suggested_fix = "apply targeted fix and keep runtime behavior intact"
+        path = self._resolve_review_issue_path(
+            raw_path=str(item.get("path") or "").strip(),
+            reason=reason,
+            artifacts=artifacts,
+        )
+        return {
+            "path": path,
+            "category": category,
+            "severity": severity,
+            "reason": reason,
+            "suggested_fix": suggested_fix,
+        }
+
+    def _resolve_review_issue_path(
+        self,
+        *,
+        raw_path: str,
+        reason: str,
+        artifacts: list[GeneratedArtifact],
+    ) -> str:
+        normalized_raw = raw_path.strip().replace("\\", "/").lstrip("./")
+        if not artifacts:
+            return normalized_raw
+        by_full_lower: dict[str, str] = {}
+        by_name_lower: dict[str, str] = {}
+        for a in artifacts:
+            full = a.path.strip().replace("\\", "/").lstrip("./")
+            if not full:
+                continue
+            by_full_lower[full.lower()] = full
+            by_name_lower[Path(full).name.lower()] = full
+        if normalized_raw:
+            if normalized_raw.lower() in by_full_lower:
+                return by_full_lower[normalized_raw.lower()]
+            base = Path(normalized_raw).name.lower()
+            if base in by_name_lower:
+                return by_name_lower[base]
+        low_reason = reason.lower()
+        for name_lower, full in by_name_lower.items():
+            if name_lower and name_lower in low_reason:
+                return full
+        return ""
 
     async def _review_with_auto_rework(
         self,
@@ -1039,14 +1271,52 @@ class MultiAgentScheduler:
         for cycle in range(max_cycles):
             integration = self._validate_integration(plan=plan, artifacts=current)
             last_integration = integration
-            needs_rework, reasons = self._needs_rework(report, integration)
+            visual_score = self._score_visual_delivery(
+                framework=framework,
+                artifacts=current,
+                task_guidance=task_guidance,
+            )
+            semantic_roundtrip = await self._semantic_roundtrip_check(
+                task=task,
+                artifacts=current,
+                framework=framework,
+            )
+            needs_rework, reasons = self._needs_rework(
+                report,
+                integration,
+                visual_score=visual_score,
+                semantic_roundtrip=semantic_roundtrip,
+                task_guidance=task_guidance,
+            )
+            issue_files = sorted({str(i.get("path") or "").strip() for i in report.issues if str(i.get("path") or "").strip()})
             history.append(
                 {
                     "cycle": cycle + 1,
                     "status": report.status,
                     "integration": integration,
                     "reasons": reasons,
+                    "blocking_issues": list(report.blocking_issues),
+                    "issues_count": len(report.issues),
+                    "issue_files": issue_files,
+                    "issue_samples": report.issues[:8],
+                    "scores": dict(report.scores),
+                    "visual_score": visual_score,
+                    "semantic_roundtrip": semantic_roundtrip,
                 }
+            )
+            await self.emit(
+                "quality_gate_cycle",
+                {
+                    "cycle": cycle + 1,
+                    "status": report.status,
+                    "integration": integration,
+                    "reasons": reasons,
+                    "blocking_issues": list(report.blocking_issues),
+                    "issues_count": len(report.issues),
+                    "issue_files": issue_files,
+                    "visual_score": visual_score,
+                    "semantic_roundtrip": semantic_roundtrip,
+                },
             )
             if not needs_rework:
                 self._last_quality_gate = {
@@ -1056,6 +1326,12 @@ class MultiAgentScheduler:
                     "final_integration": integration,
                     "triggers": triggers,
                     "history": history,
+                    "final_blocking_issues": list(report.blocking_issues),
+                    "final_issues_count": len(report.issues),
+                    "final_issue_samples": report.issues[:12],
+                    "scores": dict(report.scores),
+                    "visual_score": visual_score,
+                    "semantic_roundtrip": semantic_roundtrip,
                 }
                 await self.emit("quality_gate_report", dict(self._last_quality_gate))
                 return report, current
@@ -1072,6 +1348,28 @@ class MultiAgentScheduler:
             )
             auto_reworks += 1
             triggers.extend([f"cycle{cycle + 1}:{r}" for r in reasons])
+            for issue in report.issues[:20]:
+                sev = str(issue.get("severity") or "low")
+                cat = str(issue.get("category") or "runtime")
+                triggers.append(f"cycle{cycle + 1}:issue:{sev}:{cat}")
+            semantic_missing = semantic_roundtrip.get("missing_requirements")
+            if isinstance(semantic_missing, list):
+                current, semantic_summary = await self._revise_with_semantic_gaps(
+                    task=task,
+                    artifacts=current,
+                    framework=framework,
+                    ui_preset=ui_preset,
+                    missing_requirements=[str(x).strip() for x in semantic_missing if str(x).strip()],
+                )
+                await self.emit("console_log", {"text": f"[quality_gate] semantic_revise={semantic_summary}", "level": "default"})
+            current, revise_summary = await self._revise_with_review_issues(
+                task=task,
+                artifacts=current,
+                framework=framework,
+                ui_preset=ui_preset,
+                review_issues=report.issues,
+            )
+            await self.emit("console_log", {"text": f"[quality_gate] review_revise={revise_summary}", "level": "default"})
             current, verify_summary = await self._self_check_and_repair(
                 task=task,
                 artifacts=current,
@@ -1103,25 +1401,305 @@ class MultiAgentScheduler:
             "final_integration": last_integration,
             "triggers": triggers,
             "history": history,
+            "final_blocking_issues": list(report.blocking_issues),
+            "final_issues_count": len(report.issues),
+            "final_issue_samples": report.issues[:12],
+            "scores": dict(report.scores),
+            "visual_score": self._score_visual_delivery(
+                framework=framework,
+                artifacts=current,
+                task_guidance=task_guidance,
+            ),
+            "semantic_roundtrip": await self._semantic_roundtrip_check(
+                task=task,
+                artifacts=current,
+                framework=framework,
+            ),
         }
         await self.emit("quality_gate_report", dict(self._last_quality_gate))
         return report, current
 
-    def _needs_rework(self, report: ReviewReport, integration: str) -> tuple[bool, list[str]]:
+    def _needs_rework(
+        self,
+        report: ReviewReport,
+        integration: str,
+        *,
+        visual_score: dict[str, Any] | None = None,
+        semantic_roundtrip: dict[str, Any] | None = None,
+        task_guidance: TaskTypeGuidance | None = None,
+    ) -> tuple[bool, list[str]]:
         reasons: list[str] = []
         if report.status == "fail":
             reasons.append("review_status_fail")
         if report.blocking_issues:
             reasons.append("blocking_issues_present")
+        if any(i.get("severity") in {"critical", "high"} for i in report.issues):
+            reasons.append("critical_or_high_review_issue_present")
+        if len(report.issues) >= 6:
+            reasons.append("review_issue_count_gte_6")
         if report.scores.get("executable", 100) < 70:
             reasons.append("score_executable_lt_70")
         if report.scores.get("interaction", 100) < 65:
             reasons.append("score_interaction_lt_65")
+        if report.scores.get("information_architecture", 100) < 60:
+            reasons.append("score_information_architecture_lt_60")
         if report.status == "warn" and report.scores.get("responsive", 100) < 60:
             reasons.append("score_responsive_lt_60_on_warn")
         if not integration.startswith("ok "):
             reasons.append("integration_not_ok")
+        if isinstance(visual_score, dict):
+            try:
+                visual_total = float(visual_score.get("total") or 0.0)
+            except Exception:
+                visual_total = 0.0
+            is_game_task = bool(task_guidance and "game" in (task_guidance.guidance or "").lower())
+            min_visual = 78.0 if is_game_task else 70.0
+            if visual_total < min_visual:
+                reasons.append(f"visual_total_lt_{int(min_visual)}")
+            scores_raw = visual_score.get("scores")
+            if isinstance(scores_raw, dict):
+                low_dims = []
+                for k, v in scores_raw.items():
+                    try:
+                        if float(v) < 60.0:
+                            low_dims.append(str(k))
+                    except Exception:
+                        continue
+                if len(low_dims) >= 2:
+                    reasons.append("visual_multi_dimension_weakness")
+                tab_score_raw = scores_raw.get("tabbed_information_architecture")
+                try:
+                    tab_score = float(tab_score_raw) if tab_score_raw is not None else 100.0
+                except Exception:
+                    tab_score = 100.0
+                if tab_score < 65.0:
+                    reasons.append("visual_tabbed_information_architecture_lt_65")
+        if isinstance(semantic_roundtrip, dict):
+            try:
+                coverage = float(semantic_roundtrip.get("coverage_score") or 0.0)
+            except Exception:
+                coverage = 0.0
+            risk = str(semantic_roundtrip.get("risk") or "").strip().lower()
+            missing = semantic_roundtrip.get("missing_requirements")
+            missing_count = len(missing) if isinstance(missing, list) else 0
+            is_game_task = bool(task_guidance and "game" in (task_guidance.guidance or "").lower())
+            min_semantic = 82.0 if is_game_task else 75.0
+            if coverage < min_semantic:
+                reasons.append(f"semantic_coverage_lt_{int(min_semantic)}")
+            if risk == "high":
+                reasons.append("semantic_roundtrip_high_risk")
+            if missing_count >= 2:
+                reasons.append("semantic_missing_requirements_gte_2")
         return (len(reasons) > 0, reasons)
+
+    async def _semantic_roundtrip_check(
+        self,
+        *,
+        task: str,
+        artifacts: list[GeneratedArtifact],
+        framework: str,
+    ) -> dict[str, Any]:
+        summary = "\n".join(
+            f"- {a.path} ({len(a.content)} chars) :: {(a.content or '').strip().replace(chr(10), ' ')[:160]}"
+            for a in artifacts[:80]
+        )
+        system = (
+            "You are Semantic Roundtrip Evaluator.\n"
+            "Given the original user task and generated code summary, infer implemented requirements.\n"
+            "Return JSON only.\n"
+            "Schema: "
+            "{\"coverage_score\":0-100,"
+            "\"risk\":\"low|medium|high\","
+            "\"missing_requirements\":[\"...\"],"
+            "\"implemented_requirements\":[\"...\"],"
+            "\"notes\":\"...\"}"
+        )
+        user = (
+            f"USER_TASK:\n{task}\n\n"
+            f"FRAMEWORK:{framework}\n\n"
+            f"GENERATED_FILES_SUMMARY:\n{summary}\n"
+        )
+        raw = await self._call_with_retry(system, user, tag="semantic.roundtrip", role="reviewer")
+        parsed = self._parse_json_object(raw)
+        if not parsed:
+            return {
+                "coverage_score": 70.0,
+                "risk": "medium",
+                "missing_requirements": [],
+                "implemented_requirements": [],
+                "notes": "semantic_roundtrip_parse_failed",
+            }
+        try:
+            coverage = float(parsed.get("coverage_score") or 0.0)
+        except Exception:
+            coverage = 0.0
+        coverage = max(0.0, min(100.0, coverage))
+        risk = str(parsed.get("risk") or "medium").strip().lower()
+        if risk not in {"low", "medium", "high"}:
+            risk = "medium"
+        missing_raw = parsed.get("missing_requirements")
+        implemented_raw = parsed.get("implemented_requirements")
+        missing = (
+            [str(x).strip() for x in missing_raw if str(x).strip()]
+            if isinstance(missing_raw, list)
+            else []
+        )
+        implemented = (
+            [str(x).strip() for x in implemented_raw if str(x).strip()]
+            if isinstance(implemented_raw, list)
+            else []
+        )
+        notes = str(parsed.get("notes") or "").strip()
+        return {
+            "coverage_score": round(coverage, 2),
+            "risk": risk,
+            "missing_requirements": missing[:24],
+            "implemented_requirements": implemented[:24],
+            "notes": notes[:600],
+        }
+
+    def _select_semantic_target(
+        self,
+        *,
+        artifacts: list[GeneratedArtifact],
+        framework: str,
+    ) -> GeneratedArtifact | None:
+        if not artifacts:
+            return None
+        by_name: dict[str, GeneratedArtifact] = {
+            Path(a.path).name.lower(): a for a in artifacts
+        }
+        by_full: dict[str, GeneratedArtifact] = {
+            a.path.strip().replace("\\", "/").lower(): a for a in artifacts
+        }
+        fw = (framework or "").strip().lower()
+        priority: list[str]
+        if fw == "flutter":
+            priority = ["lib/main.dart", "main.dart"]
+        elif fw in {"react", "nextjs", "vue", "uniapp", "html", "general"}:
+            priority = ["game.js", "main.js", "app.tsx", "app.jsx", "index.js", "index.tsx", "index.html"]
+        else:
+            priority = ["main.py", "index.html", "main.js"]
+        for p in priority:
+            key = p.lower()
+            if key in by_full:
+                return by_full[key]
+            base = Path(p).name.lower()
+            if base in by_name:
+                return by_name[base]
+        return artifacts[0]
+
+    async def _revise_with_semantic_gaps(
+        self,
+        *,
+        task: str,
+        artifacts: list[GeneratedArtifact],
+        framework: str,
+        ui_preset: dict[str, Any],
+        missing_requirements: list[str],
+    ) -> tuple[list[GeneratedArtifact], str]:
+        missing = [m.strip() for m in missing_requirements if m.strip()]
+        if not missing:
+            return artifacts, "skip:no_semantic_gaps"
+        target = self._select_semantic_target(artifacts=artifacts, framework=framework)
+        if target is None:
+            return artifacts, "skip:no_target_file"
+        by_path: dict[str, GeneratedArtifact] = {a.path: a for a in artifacts}
+        reason = "[semantic_roundtrip] missing requirements:\n" + "\n".join(f"- {m}" for m in missing[:12])
+        patched = await self._repair_single_artifact(
+            task=task,
+            framework=framework,
+            ui_preset=ui_preset,
+            artifact=target,
+            issue={"path": target.path, "reason": reason},
+            all_artifacts=by_path,
+        )
+        by_path[patched.path] = patched
+        await self.emit("file_done", {"path": patched.path, "status": "done", "content": patched.content})
+        rebuilt = [by_path[a.path] for a in artifacts if a.path in by_path]
+        return rebuilt, f"patched={patched.path} missing={len(missing)}"
+
+    async def _revise_with_review_issues(
+        self,
+        *,
+        task: str,
+        artifacts: list[GeneratedArtifact],
+        framework: str,
+        ui_preset: dict[str, Any],
+        review_issues: list[dict[str, str]],
+    ) -> tuple[list[GeneratedArtifact], str]:
+        if not review_issues:
+            return artifacts, "skip:no_review_issues"
+        by_path: dict[str, GeneratedArtifact] = {a.path: a for a in artifacts}
+        touched: set[str] = set()
+        skipped = 0
+        severity_rank = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+        ordered_issues = sorted(
+            review_issues,
+            key=lambda i: severity_rank.get(str(i.get("severity") or "low"), 9),
+        )
+        for issue in ordered_issues[:40]:
+            path = str(issue.get("path") or "").strip()
+            target: GeneratedArtifact | None = by_path.get(path)
+            if target is None:
+                target = self._select_target_for_issue(
+                    issue=issue,
+                    artifacts=artifacts,
+                    by_path=by_path,
+                )
+            if target is None:
+                skipped += 1
+                continue
+            reason = (
+                f"[review_issue] severity={issue.get('severity', 'medium')} "
+                f"category={issue.get('category', 'runtime')} "
+                f"reason={issue.get('reason', '')} "
+                f"fix={issue.get('suggested_fix', '')}"
+            )
+            patched = await self._repair_single_artifact(
+                task=task,
+                framework=framework,
+                ui_preset=ui_preset,
+                artifact=target,
+                issue={"path": target.path, "reason": reason},
+                all_artifacts=by_path,
+            )
+            by_path[patched.path] = patched
+            touched.add(patched.path)
+            await self.emit("file_done", {"path": patched.path, "status": "done", "content": patched.content})
+        repaired = [by_path[a.path] for a in artifacts if a.path in by_path]
+        return repaired, f"patched={len(touched)} skipped={skipped} issues={len(review_issues)}"
+
+    def _select_target_for_issue(
+        self,
+        *,
+        issue: dict[str, str],
+        artifacts: list[GeneratedArtifact],
+        by_path: dict[str, GeneratedArtifact],
+    ) -> GeneratedArtifact | None:
+        reason = str(issue.get("reason") or "").lower()
+        for a in artifacts:
+            name = Path(a.path).name.lower()
+            if name and name in reason:
+                return by_path.get(a.path)
+        priority_names = (
+            "main.dart",
+            "index.html",
+            "main.js",
+            "main.ts",
+            "app.tsx",
+            "app.jsx",
+            "game.js",
+            "game.ts",
+            "main.py",
+        )
+        for n in priority_names:
+            for a in artifacts:
+                if Path(a.path).name.lower() == n:
+                    return by_path.get(a.path)
+        if artifacts:
+            return by_path.get(artifacts[0].path)
+        return None
 
     async def _self_check_and_repair(
         self,
@@ -1132,37 +1710,114 @@ class MultiAgentScheduler:
         ui_preset: dict[str, Any],
         task_guidance: TaskTypeGuidance,
     ) -> tuple[list[GeneratedArtifact], str]:
-        issues = self._diagnose_artifacts(
-            artifacts=artifacts,
+        current = list(artifacts)
+        total_detected = 0
+        total_patched = 0
+        max_passes = 2
+
+        for pass_idx in range(max_passes):
+            issues = self._diagnose_artifacts(
+                artifacts=current,
+                framework=framework,
+                task_guidance=task_guidance,
+            )
+            if not issues:
+                if pass_idx == 0:
+                    return current, "pass:0_issue"
+                return current, f"pass:repaired={total_patched}"
+
+            total_detected += len(issues)
+            await self.emit(
+                "console_log",
+                {
+                    "text": f"[self_check] pass={pass_idx + 1}/{max_passes} detected {len(issues)} issue(s)",
+                    "level": "warning",
+                },
+            )
+            by_path: dict[str, GeneratedArtifact] = {a.path: a for a in current}
+            patched_this_pass = 0
+            for issue in issues:
+                path = issue.get("path")
+                if not path or path not in by_path:
+                    continue
+                target = by_path[path]
+                patched = await self._repair_single_artifact(
+                    task=task,
+                    framework=framework,
+                    ui_preset=ui_preset,
+                    artifact=target,
+                    issue=issue,
+                    all_artifacts=by_path,
+                )
+                by_path[path] = patched
+                if patched.content != target.content:
+                    patched_this_pass += 1
+                    await self.emit("file_done", {"path": patched.path, "status": "done", "content": patched.content})
+            total_patched += patched_this_pass
+            current = [by_path[a.path] for a in current if a.path in by_path]
+            if patched_this_pass == 0:
+                break
+
+        remain = self._diagnose_artifacts(
+            artifacts=current,
             framework=framework,
             task_guidance=task_guidance,
         )
-        if not issues:
-            return artifacts, "pass:0_issue"
-
-        await self.emit("console_log", {"text": f"[self_check] detected {len(issues)} issue(s)", "level": "warning"})
-        by_path: dict[str, GeneratedArtifact] = {a.path: a for a in artifacts}
-        for issue in issues:
-            path = issue.get("path")
-            if not path or path not in by_path:
-                continue
-            target = by_path[path]
-            patched = await self._repair_single_artifact(
-                task=task,
-                framework=framework,
-                ui_preset=ui_preset,
-                artifact=target,
-                issue=issue,
-                all_artifacts=by_path,
-            )
-            by_path[path] = patched
-            await self.emit("file_done", {"path": patched.path, "status": "done", "content": patched.content})
-
-        repaired = [by_path[a.path] for a in artifacts if a.path in by_path]
-        remain = self._diagnose_artifacts(artifacts=repaired, framework=framework)
         if remain:
-            return repaired, f"warn:remain={len(remain)} repaired={len(issues)-len(remain)}"
-        return repaired, f"pass:repaired={len(issues)}"
+            return current, f"warn:remain={len(remain)} repaired={total_patched} detected={total_detected}"
+        return current, f"pass:repaired={total_patched}"
+
+    def _classify_issue_kind(self, *, reason: str, path: str, framework: str) -> str:
+        r = (reason or "").lower()
+        p = (path or "").lower()
+        fw = (framework or "").lower()
+        if "missing runnable web entrypoint" in r or "missing flutter entrypoint" in r:
+            return "entrypoint"
+        if "contains html document content" in r or "contains html/script content" in r:
+            return "file_type_mismatch"
+        if "placeholder" in r:
+            return "placeholder"
+        if "defer" in r or "dom binding" in r or "missing_dom_id" in r:
+            return "dom_binding"
+        if "undefined type" in r or "widget" in r or "parameter" in r:
+            return "cross_file_symbol"
+        if "layout lacks adaptation" in r or "responsive" in r:
+            return "responsive"
+        if "tab" in r or "segmented" in r:
+            return "tabbed_information_architecture"
+        if "visual" in r or "typography" in r or "design token" in r:
+            return "visual"
+        if fw == "flutter" or p.endswith(".dart"):
+            return "flutter_runtime"
+        if p.endswith(".js") or p.endswith(".ts") or p.endswith(".tsx"):
+            return "web_runtime"
+        return "generic_runtime"
+
+    def _issue_fix_strategy(self, *, issue_kind: str, framework: str, path: str) -> str:
+        k = (issue_kind or "").strip().lower()
+        fw = (framework or "").strip().lower()
+        p = (path or "").strip().lower()
+        if k == "entrypoint":
+            return "Ensure valid runnable entry file and consistent startup wiring for the selected framework."
+        if k == "file_type_mismatch":
+            return "Keep file pure by extension; never embed full HTML document inside JS/CSS."
+        if k == "placeholder":
+            return "Replace placeholders with concrete runnable logic and realistic defaults."
+        if k == "dom_binding":
+            return "Align element ids/selectors with actual HTML nodes and bind listeners after DOM is ready."
+        if k == "cross_file_symbol":
+            return "Resolve undefined symbols via correct import/export or local class/function definitions."
+        if k == "responsive":
+            return "Use relative units and responsive layout primitives suitable for target framework."
+        if k == "tabbed_information_architecture":
+            return "Implement multi-tab/segmented navigation with active states and content switching."
+        if k == "visual":
+            return "Add design tokens, stronger hierarchy, and non-flat background while keeping usability."
+        if fw == "flutter" or p.endswith(".dart"):
+            return "Keep valid Dart/Flutter widget tree and state/event flow runnable."
+        if p.endswith(".js") or p.endswith(".ts") or p.endswith(".tsx"):
+            return "Keep runtime-safe JS/TS with valid module structure and executable event loop."
+        return "Produce compile-safe, runtime-safe, and fully wired code."
 
     async def _repair_single_artifact(
         self,
@@ -1177,6 +1832,16 @@ class MultiAgentScheduler:
         # Build context from related files for cross-file issues
         related_context = ""
         issue_reason = issue.get("reason", "")
+        issue_kind = self._classify_issue_kind(
+            reason=issue_reason,
+            path=artifact.path,
+            framework=framework,
+        )
+        issue_strategy = self._issue_fix_strategy(
+            issue_kind=issue_kind,
+            framework=framework,
+            path=artifact.path,
+        )
         if "undefined type" in issue_reason or "undefined parameter" in issue_reason or "widget" in issue_reason:
             # Include other dart files for context
             for path, art in all_artifacts.items():
@@ -1196,6 +1861,8 @@ class MultiAgentScheduler:
             "  3. Fix the type annotation to match an existing class\n"
             "If the issue is about widget parameters, check the widget definition and fix the call.\n"
             "Keep behavior correct and executable.\n"
+            f"ISSUE_KIND:{issue_kind}\n"
+            f"FIX_STRATEGY:{issue_strategy}\n"
             "No markdown code fences."
         )
         user = (
@@ -1210,7 +1877,19 @@ class MultiAgentScheduler:
         )
         fixed = await self._call_with_retry(system, user, tag=f"fix:{artifact.path}", role="fixer")
         fixed = self._strip_code_fences(fixed)
-        return GeneratedArtifact(path=artifact.path, description=artifact.description, content=fixed)
+        fixed = self._coerce_content_for_path(path=artifact.path, content=fixed)
+        candidate = GeneratedArtifact(path=artifact.path, description=artifact.description, content=fixed)
+        lint_ok, lint_msg = self._lint_artifact(candidate)
+        if not lint_ok:
+            await self.emit(
+                "console_log",
+                {
+                    "text": f"[fix:{artifact.path}] rejected by lint after repair: {lint_msg}",
+                    "level": "warning",
+                },
+            )
+            return artifact
+        return candidate
 
     async def _call_with_retry(self, system: str, user: str, *, tag: str, role: str) -> str:
         last = ""
@@ -1383,21 +2062,68 @@ class MultiAgentScheduler:
 
     def _parse_json_object(self, text: str) -> dict[str, Any]:
         raw = self._strip_code_fences(text).strip()
-        try:
-            obj = json.loads(raw)
-            if isinstance(obj, dict):
-                return obj
-        except Exception:
-            pass
+        candidates: list[str] = []
+        if raw:
+            candidates.append(raw)
+        content_wrapped = self._extract_content_tag_payload(raw)
+        if content_wrapped:
+            candidates.append(content_wrapped)
         m = re.search(r"\{[\s\S]*\}", raw)
         if m:
-            try:
-                obj = json.loads(m.group(0))
-                if isinstance(obj, dict):
+            candidates.append(m.group(0))
+        seen: set[str] = set()
+        for candidate in candidates:
+            c = candidate.strip()
+            if not c or c in seen:
+                continue
+            seen.add(c)
+            obj = self._try_parse_json_dict(c)
+            if obj is not None:
+                return obj
+            repaired = self._repair_json_like_text(c)
+            if repaired and repaired != c:
+                obj = self._try_parse_json_dict(repaired)
+                if obj is not None:
                     return obj
-            except Exception:
-                pass
         return {}
+
+    def _extract_content_tag_payload(self, text: str) -> str:
+        raw = (text or "").strip()
+        if not raw:
+            return ""
+        m = re.search(r"\[CONTENT\]([\s\S]*?)\[/CONTENT\]", raw, flags=re.IGNORECASE)
+        if not m:
+            return ""
+        return (m.group(1) or "").strip()
+
+    def _try_parse_json_dict(self, text: str) -> dict[str, Any] | None:
+        try:
+            parsed = json.loads(text)
+        except Exception:
+            return None
+        if isinstance(parsed, dict):
+            return parsed
+        if isinstance(parsed, list):
+            for item in parsed:
+                if isinstance(item, dict):
+                    return item
+        return None
+
+    def _repair_json_like_text(self, text: str) -> str:
+        s = (text or "").strip()
+        if not s:
+            return s
+        s = s.lstrip("\ufeff")
+        s = s.replace("\r\n", "\n")
+        s = s.replace("“", "\"").replace("”", "\"").replace("’", "'")
+        s = re.sub(r",(\s*[}\]])", r"\1", s)
+        s = re.sub(r"//.*?$", "", s, flags=re.MULTILINE)
+        s = re.sub(r"#.*?$", "", s, flags=re.MULTILINE)
+        left = s.find("{")
+        right = s.rfind("}")
+        if left >= 0 and right > left:
+            s = s[left : right + 1]
+        return s.strip()
 
     def _strip_code_fences(self, text: str) -> str:
         raw = (text or "").strip()
@@ -1406,12 +2132,91 @@ class MultiAgentScheduler:
             raw = re.sub(r"\n?```$", "", raw)
         return raw.strip()
 
+    def _extension_output_contract(self, path: str) -> str:
+        p = (path or "").strip().lower()
+        if p.endswith(".js") or p.endswith(".mjs") or p.endswith(".cjs"):
+            return (
+                "- Output MUST be pure JavaScript source code only.\n"
+                "- DO NOT output <html>, <!DOCTYPE>, <head>, <body>, <style>, or markdown.\n"
+                "- Start directly with JS statements/imports/comments."
+            )
+        if p.endswith(".css"):
+            return (
+                "- Output MUST be pure CSS source code only.\n"
+                "- DO NOT output <html>, <body>, <script>, or markdown fences.\n"
+                "- Start directly with selectors, :root, @media, or @keyframes."
+            )
+        if p.endswith(".html"):
+            return (
+                "- Output MUST be a complete HTML document.\n"
+                "- Include <!DOCTYPE html>, <html>, <head>, and <body>.\n"
+                "- Script/style content must be valid and runnable."
+            )
+        if p.endswith(".dart"):
+            return (
+                "- Output MUST be valid Dart source.\n"
+                "- DO NOT include markdown fences or non-Dart wrappers."
+            )
+        if p.endswith(".py"):
+            return (
+                "- Output MUST be valid Python source.\n"
+                "- DO NOT include markdown fences or non-Python wrappers."
+            )
+        return ""
+
+    def _extract_first_tag_payload(self, content: str, tag: str) -> str:
+        text = content or ""
+        pattern = re.compile(rf"<{tag}\b[^>]*>([\s\S]*?)</{tag}>", flags=re.IGNORECASE)
+        matches = pattern.findall(text)
+        if not matches:
+            return ""
+        payload = "\n\n".join(m.strip() for m in matches if m and m.strip())
+        return payload.strip()
+
+    def _coerce_content_for_path(self, *, path: str, content: str) -> str:
+        p = (path or "").strip().lower()
+        text = (content or "").strip()
+        if not text:
+            return text
+        if self._looks_like_html_document(text):
+            if p.endswith(".js") or p.endswith(".mjs") or p.endswith(".cjs"):
+                script_payload = self._extract_first_tag_payload(text, "script")
+                if script_payload:
+                    return script_payload
+            if p.endswith(".css"):
+                style_payload = self._extract_first_tag_payload(text, "style")
+                if style_payload:
+                    return style_payload
+        return text
+
+    def _looks_like_html_document(self, content: str) -> bool:
+        c = (content or "").lstrip().lower()
+        if c.startswith("<!doctype html") or c.startswith("<html"):
+            return True
+        if "<head>" in c and "<body" in c and "</html>" in c:
+            return True
+        return False
+
     def _lint_artifact(self, artifact: GeneratedArtifact) -> tuple[bool, str]:
         path = artifact.path.lower()
         content = artifact.content or ""
         if not content.strip():
             return False, "empty content"
         try:
+            if path.endswith(".js"):
+                if self._looks_like_html_document(content):
+                    return False, "js file contains html document content"
+                return True, "js basic check ok"
+            if path.endswith(".css"):
+                low = content.lower()
+                if self._looks_like_html_document(content) or "<script" in low or "<body" in low:
+                    return False, "css file contains html/script content"
+                return True, "css basic check ok"
+            if path.endswith(".html"):
+                low = content.lower()
+                if "<html" not in low or "<body" not in low:
+                    return False, "html structure missing"
+                return True, "html basic check ok"
             if path.endswith(".json"):
                 json.loads(content)
                 return True, "json ok"
@@ -1472,19 +2277,24 @@ class MultiAgentScheduler:
         responsive_signals = ("layoutbuilder", "mediaquery", "@media", "breakpoint", "responsive", "flex", "grid")
         visual_signals = ("theme", "color", "typography", "spacing", "radius", "boxshadow")
         placeholder_signals = ("todo", "tbd", "placeholder", "coming soon", "mock data")
+        tab_signals = ("tablist", "role=\"tab\"", "role='tab'", "tabs", "tab-", "data-tab", "aria-selected")
+        is_web = (framework or "").strip().lower() in {"html", "react", "nextjs", "uniapp", "general"}
 
         interaction = 100.0 if any(s.lower() in corpus for s in interaction_signals) else 45.0
         responsive = 100.0 if any(s.lower() in corpus for s in responsive_signals) else 55.0
         visual = 100.0 if any(s.lower() in corpus for s in visual_signals) else 55.0
+        has_tabbed_ia = any(s.lower() in corpus for s in tab_signals)
+        info_architecture = 100.0 if has_tabbed_ia else (55.0 if is_web else 80.0)
         placeholder_hits = sum(corpus.count(s) for s in placeholder_signals)
         hygiene = max(0.0, 100.0 - min(float(placeholder_hits * 8), 72.0))
 
         total = (
-            file_cov * 0.30
-            + entry_score * 0.20
-            + interaction * 0.20
+            file_cov * 0.28
+            + entry_score * 0.18
+            + interaction * 0.19
             + (0.6 * responsive + 0.4 * visual) * 0.15
-            + hygiene * 0.15
+            + hygiene * 0.10
+            + info_architecture * 0.10
         )
         verdict = "pass" if total >= 80 else ("warn" if total >= 65 else "fail")
         return {
@@ -1494,10 +2304,152 @@ class MultiAgentScheduler:
                 "interaction": round(interaction, 2),
                 "ux_design": round((0.6 * responsive + 0.4 * visual), 2),
                 "hygiene": round(hygiene, 2),
+                "information_architecture": round(info_architecture, 2),
             },
             "placeholder_hits": int(placeholder_hits),
             "total": round(total, 2),
             "verdict": verdict,
+        }
+
+    def _score_visual_delivery(
+        self,
+        *,
+        framework: str,
+        artifacts: list[GeneratedArtifact],
+        task_guidance: TaskTypeGuidance | None = None,
+    ) -> dict[str, Any]:
+        corpus = "\n".join((a.content or "") for a in artifacts)
+        low = corpus.lower()
+        is_web = framework in {"html", "react", "nextjs", "uniapp"}
+        is_flutter = framework == "flutter"
+        is_game = bool(task_guidance and "game" in (task_guidance.guidance or "").lower())
+
+        def score_by_hits(hits: int, *, target: int) -> float:
+            if target <= 0:
+                return 100.0
+            ratio = min(1.0, float(hits) / float(target))
+            return round(40.0 + ratio * 60.0, 2)
+
+        token_hits = 0
+        if is_web:
+            token_hits += 2 if (":root" in low and "--" in low) else 0
+            token_hits += 1 if "theme" in low else 0
+            token_hits += 1 if "var(--" in low else 0
+        if is_flutter:
+            token_hits += 2 if "themedata(" in low else 0
+            token_hits += 2 if "colorscheme" in low else 0
+            token_hits += 1 if "texttheme" in low else 0
+        design_tokens = score_by_hits(token_hits, target=4)
+
+        hierarchy_hits = 0
+        if "linear-gradient" in low or "radial-gradient" in low:
+            hierarchy_hits += 2
+        if "box-shadow" in low or "boxshadow(" in low:
+            hierarchy_hits += 1
+        if "border-radius" in low or "borderradius" in low:
+            hierarchy_hits += 1
+        if "card" in low or "surface" in low or "panel" in low:
+            hierarchy_hits += 1
+        plain_white = (
+            "background: #fff" in low
+            or "background:#fff" in low
+            or "background-color: white" in low
+            or "background-color:white" in low
+        )
+        if plain_white and hierarchy_hits > 0:
+            hierarchy_hits -= 1
+        visual_hierarchy = score_by_hits(hierarchy_hits, target=4)
+
+        typo_hits = 0
+        if "font-family" in low or "@font-face" in low or "texttheme" in low:
+            typo_hits += 2
+        if "font-size" in low or "headline" in low or "titlelarge" in low:
+            typo_hits += 1
+        if "line-height" in low or "height: 1." in low or "letter-spacing" in low:
+            typo_hits += 1
+        typography = score_by_hits(typo_hits, target=4)
+
+        feedback_hits = 0
+        if "transition" in low or "@keyframes" in low or "animation" in low:
+            feedback_hits += 1
+        if ":hover" in low or ":active" in low or ":focus" in low:
+            feedback_hits += 1
+        if "onclick" in low or "addeventlistener" in low or "onpressed" in low or "ontap" in low:
+            feedback_hits += 1
+        if "disabled" in low:
+            feedback_hits += 1
+        motion_feedback = score_by_hits(feedback_hits, target=4)
+
+        tab_hits = 0
+        if is_web:
+            for sig in (
+                "tablist",
+                "role=\"tab\"",
+                "role='tab'",
+                "data-tab",
+                "aria-selected",
+                "tabs",
+                "active-tab",
+                "tab-button",
+                "segmented",
+            ):
+                if sig in low:
+                    tab_hits += 1
+            if "onclick" in low or "addeventlistener" in low:
+                tab_hits += 1
+        tabbed_information_architecture = score_by_hits(tab_hits, target=4) if is_web else 100.0
+
+        polish_hits = 0
+        if is_game:
+            for sig in (
+                "score",
+                "level",
+                "lives",
+                "health",
+                "pause",
+                "resume",
+                "restart",
+                "game over",
+                "win",
+            ):
+                if sig in low:
+                    polish_hits += 1
+            game_polish = score_by_hits(polish_hits, target=6)
+        else:
+            for sig in (
+                "empty state",
+                "loading",
+                "error",
+                "retry",
+                "success",
+                "skeleton",
+            ):
+                if sig in low:
+                    polish_hits += 1
+            game_polish = score_by_hits(polish_hits, target=4)
+
+        total = (
+            design_tokens * 0.22
+            + visual_hierarchy * 0.22
+            + typography * 0.14
+            + motion_feedback * 0.16
+            + tabbed_information_architecture * 0.12
+            + game_polish * 0.14
+        )
+        verdict = "pass" if total >= 80 else ("warn" if total >= 65 else "fail")
+        return {
+            "scores": {
+                "design_tokens": round(design_tokens, 2),
+                "visual_hierarchy": round(visual_hierarchy, 2),
+                "typography": round(typography, 2),
+                "motion_feedback": round(motion_feedback, 2),
+                "tabbed_information_architecture": round(tabbed_information_architecture, 2),
+                "game_polish": round(game_polish, 2),
+            },
+            "total": round(total, 2),
+            "verdict": verdict,
+            "framework": framework,
+            "task_type": "game" if is_game else "general",
         }
 
     def _get_framework_plan_rules(self, framework: str) -> str:
@@ -1578,6 +2530,10 @@ class MultiAgentScheduler:
             "If web UI is generated, prefer responsive units (%, rem, vw, vh, clamp) over fixed px.",
             "Support desktop/mobile/tablet layout adaptation.",
             "All interactive elements MUST have working event handlers - never leave empty stubs.",
+            "For web UI, define explicit visual tokens and avoid plain white default surfaces.",
+            "For web UI, include clear component styling for cards/buttons/inputs and consistent spacing.",
+            "Use clear typography hierarchy and non-default visual direction.",
+            "For production UI, use multi-tab/segmented navigation when screen density is medium/high.",
             "For games: must include complete game logic, win/lose conditions, score tracking, and restart capability.",
             "For apps: must include complete state management and user interaction flows.",
         ]
@@ -1587,7 +2543,9 @@ class MultiAgentScheduler:
                 "Must include valid runnable entrypoint (index.html or package.json scripts).",
                 "Ensure script/style paths are relative and loadable.",
                 "CSS must include responsive breakpoints or flexible layout (flex/grid + relative units).",
+                "CSS should include variables/theme tokens and at least one non-flat background treatment (gradient/pattern/surface layers).",
                 "JavaScript must include event listeners (addEventListener) for all interactive elements.",
+                "Web UI should include tabbed/segmented panels (tablist/tabs/buttons with active state) for key modules.",
                 "For games: use requestAnimationFrame for game loop, implement keyboard/mouse/touch input handling.",
                 "Never generate static HTML mockups - all UI must respond to user input.",
             ]
@@ -1634,6 +2592,7 @@ class MultiAgentScheduler:
         issues: list[dict[str, str]] = []
         by_path = {a.path.lower(): a for a in artifacts}
         names = {Path(p).name.lower() for p in by_path}
+        game_focus = bool(task_guidance and "game" in (task_guidance.guidance or "").lower())
 
         if framework in {"html", "react", "nextjs", "uniapp"}:
             if "index.html" not in names and "package.json" not in names:
@@ -1652,6 +2611,14 @@ class MultiAgentScheduler:
             if not c.strip():
                 issues.append({"path": a.path, "reason": "empty content"})
                 continue
+            if p.endswith(".js") and self._looks_like_html_document(c):
+                issues.append({"path": a.path, "reason": "javascript file contains html document content"})
+                continue
+            if p.endswith(".css"):
+                low = c.lower()
+                if self._looks_like_html_document(c) or "<script" in low or "<body" in low:
+                    issues.append({"path": a.path, "reason": "css file contains html/script content"})
+                    continue
             if placeholder_re.search(c):
                 issues.append({"path": a.path, "reason": "contains unfinished placeholder markers"})
             if p.endswith(".css"):
@@ -1686,6 +2653,56 @@ class MultiAgentScheduler:
                 has_state = any(kw in c for kw in ["useState", "state", "setState", "let ", "const "])
                 if not has_events and "game" in p and has_state:
                     issues.append({"path": a.path, "reason": "game js file lacks event listeners"})
+
+        if framework in {"html", "react", "nextjs", "uniapp"}:
+            web_corpus = "\n".join((a.content or "").lower() for a in artifacts)
+            has_tabs = any(
+                sig in web_corpus
+                for sig in (
+                    "tablist",
+                    "role=\"tab\"",
+                    "role='tab'",
+                    "tabs",
+                    "data-tab",
+                    "aria-selected",
+                    "active-tab",
+                    "segmented",
+                )
+            )
+            complex_ui_signal = any(
+                sig in web_corpus
+                for sig in ("panel", "sidebar", "hud", "dashboard", "settings", "stats", "menu", "section")
+            )
+            if (game_focus or complex_ui_signal) and not has_tabs:
+                issues.append(
+                    {
+                        "path": "",
+                        "reason": "web ui missing tabbed/segmented navigation for production information architecture",
+                    }
+                )
+
+        if framework in {"html", "react", "nextjs", "uniapp"} and game_focus:
+            web_corpus = "\n".join((a.content or "").lower() for a in artifacts)
+            has_tokens = "--" in web_corpus or ":root" in web_corpus or "theme" in web_corpus
+            has_rich_bg = (
+                "linear-gradient" in web_corpus
+                or "radial-gradient" in web_corpus
+                or "background-image" in web_corpus
+                or "box-shadow" in web_corpus
+            )
+            has_typography = "font-family" in web_corpus or "@font-face" in web_corpus
+            plain_white = (
+                "background: #fff" in web_corpus
+                or "background:#fff" in web_corpus
+                or "background-color: white" in web_corpus
+                or "background-color:white" in web_corpus
+            )
+            if not has_tokens:
+                issues.append({"path": "", "reason": "game visual system missing design tokens (css vars/theme constants)"})
+            if not has_rich_bg or plain_white:
+                issues.append({"path": "", "reason": "game visual style too plain (needs non-flat background and stronger surfaces)"})
+            if not has_typography:
+                issues.append({"path": "", "reason": "game UI missing explicit typography system"})
 
         return issues
 

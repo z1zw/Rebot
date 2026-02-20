@@ -23,6 +23,12 @@ services:
     env_file: ./backend/.env.example
     ports:
       - "8001:8000"
+      - "3000:3000"
+      - "3002-3600:3002-3600"
+      - "5100-5399:5100-5399"
+      - "8080-8400:8080-8400"
+    volumes:
+      - ./workspace:/app/backend/workspace
     depends_on:
       - db
       - redis

@@ -1,4 +1,4 @@
-import "package:flutter/material.dart";
+﻿import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:provider/provider.dart";
 import "../app_state.dart";
@@ -644,7 +644,7 @@ class _SettingsHeader extends StatelessWidget {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: const Color(0xFF10A37F).withOpacity(0.15),
+              color: const Color(0xFF10A37F).withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(Icons.settings_outlined, color: Color(0xFF10A37F), size: 18),
@@ -676,9 +676,9 @@ class _SettingsHeader extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: const Color(0xFFFACC15).withOpacity(0.15),
+                color: const Color(0xFFFACC15).withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: const Color(0xFFFACC15).withOpacity(0.3)),
+                border: Border.all(color: const Color(0xFFFACC15).withValues(alpha: 0.3)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -749,7 +749,7 @@ class _SectionState extends State<_Section> {
                   width: 28,
                   height: 28,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF10A37F).withOpacity(0.1),
+                    color: const Color(0xFF10A37F).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Icon(widget.icon, size: 14, color: const Color(0xFF10A37F)),
@@ -1036,9 +1036,9 @@ class _HintBox extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF10A37F).withOpacity(0.08),
+        color: const Color(0xFF10A37F).withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFF10A37F).withOpacity(0.3)),
+        border: Border.all(color: const Color(0xFF10A37F).withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -1065,9 +1065,9 @@ class _InfoCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFFACC15).withOpacity(0.08),
+        color: const Color(0xFFFACC15).withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFFACC15).withOpacity(0.25)),
+        border: Border.all(color: const Color(0xFFFACC15).withValues(alpha: 0.25)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1076,7 +1076,7 @@ class _InfoCard extends StatelessWidget {
             width: 24,
             height: 24,
             decoration: BoxDecoration(
-              color: const Color(0xFFFACC15).withOpacity(0.15),
+              color: const Color(0xFFFACC15).withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(6),
             ),
             child: const Icon(Icons.info_outline, size: 14, color: Color(0xFFFACC15)),
@@ -1103,3 +1103,4 @@ class _InfoCard extends StatelessWidget {
     );
   }
 }
+

@@ -15,6 +15,7 @@ class WorkspaceTopHeader extends StatelessWidget {
     required this.onRun,
     required this.onRefresh,
     required this.onGitClone,
+    required this.onOpenGit,
     required this.onRetryClone,
     required this.onConsole,
     required this.onNetwork,
@@ -32,6 +33,7 @@ class WorkspaceTopHeader extends StatelessWidget {
   final VoidCallback onRun;
   final VoidCallback onRefresh;
   final VoidCallback onGitClone;
+  final VoidCallback onOpenGit;
   final VoidCallback onRetryClone;
   final VoidCallback onConsole;
   final VoidCallback onNetwork;
@@ -78,6 +80,12 @@ class WorkspaceTopHeader extends StatelessWidget {
               icon: Icons.download_rounded,
               onTap: onGitClone,
               tooltip: "Git clone",
+            ),
+            const SizedBox(width: 4),
+            _HeaderIconBtn(
+              icon: Icons.source_rounded,
+              onTap: onOpenGit,
+              tooltip: "Open Git",
             ),
             const SizedBox(width: 4),
             _HeaderIconBtn(

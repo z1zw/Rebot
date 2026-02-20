@@ -1,4 +1,4 @@
-import "dart:convert";
+﻿import "dart:convert";
 import "dart:async";
 import "dart:io";
 import "package:flutter/material.dart";
@@ -62,7 +62,7 @@ class _ToggleItem extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? AppTokens.primary.withOpacity(0.18) : Colors.transparent,
+          color: selected ? AppTokens.primary.withValues(alpha: 0.18) : Colors.transparent,
           borderRadius: BorderRadius.circular(AppTokens.radiusSm),
         ),
         child: Text(
@@ -310,3 +310,4 @@ class _MonacoPreviewState extends State<MonacoPreview> {
     return Uri.file(vsDir.path).toString();
   }
 }
+

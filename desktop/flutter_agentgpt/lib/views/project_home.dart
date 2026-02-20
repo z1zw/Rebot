@@ -1,5 +1,4 @@
 import "dart:io";
-import "dart:ui";
 import "package:bitsdojo_window/bitsdojo_window.dart";
 import "package:file_selector/file_selector.dart";
 import "package:flutter/material.dart";
@@ -18,7 +17,6 @@ class _ProjectHomeState extends State<ProjectHome> {
   static const Color _xBg = Color(0xFF17181C);
   static const Color _xBgElevated = Color(0xFF202329);
   static const Color _xPanel = Color(0xFF252A33);
-  static const Color _xPanelHover = Color(0xFF2D3340);
   static const Color _xBlue = Color(0xFF0A84FF);
   static const Color _xStroke = Color(0xFF343A46);
   static const Color _xHint = Color(0xFF99A1B3);
@@ -37,7 +35,7 @@ class _ProjectHomeState extends State<ProjectHome> {
       context: context,
       barrierDismissible: true,
       barrierLabel: "Open Folder",
-      barrierColor: Colors.black.withOpacity(0.5),
+      barrierColor: Colors.black.withValues(alpha: 0.5),
       transitionDuration: const Duration(milliseconds: 200),
       pageBuilder: (ctx, _, __) => Center(
         child: _IdeaOpenFolderDialog(appState: appState),
@@ -51,7 +49,7 @@ class _ProjectHomeState extends State<ProjectHome> {
       context: context,
       barrierDismissible: true,
       barrierLabel: "Clone Repository",
-      barrierColor: Colors.black.withOpacity(0.5),
+      barrierColor: Colors.black.withValues(alpha: 0.5),
       transitionDuration: const Duration(milliseconds: 200),
       pageBuilder: (ctx, _, __) => Center(
         child: _IdeaCloneDialog(appState: appState),
@@ -64,7 +62,7 @@ class _ProjectHomeState extends State<ProjectHome> {
       context: context,
       barrierDismissible: true,
       barrierLabel: "Create Project",
-      barrierColor: Colors.black.withOpacity(0.5),
+      barrierColor: Colors.black.withValues(alpha: 0.5),
       transitionDuration: const Duration(milliseconds: 200),
       pageBuilder: (ctx, _, __) => Center(
         child: _IdeaCreateProjectDialog(appState: context.read<AppState>()),
@@ -74,11 +72,13 @@ class _ProjectHomeState extends State<ProjectHome> {
 
   @override
   Widget build(BuildContext context) {
-    final allProjects = context.select<AppState, List<Project>>((s) => s.projects);
+    final allProjects =
+        context.select<AppState, List<Project>>((s) => s.projects);
     final projects = allProjects.where((p) {
       if (_query.isEmpty) return true;
       final q = _query.toLowerCase();
-      return p.name.toLowerCase().contains(q) || p.framework.toLowerCase().contains(q);
+      return p.name.toLowerCase().contains(q) ||
+          p.framework.toLowerCase().contains(q);
     }).toList();
 
     return Scaffold(
@@ -115,7 +115,11 @@ class _ProjectHomeState extends State<ProjectHome> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: const Center(
-                          child: Text("R", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white)),
+                          child: Text("R",
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white)),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -198,14 +202,17 @@ class _ProjectHomeState extends State<ProjectHome> {
                             child: Row(
                               children: [
                                 const SizedBox(width: 10),
-                                const Icon(Icons.search, size: 14, color: _xHint),
+                                const Icon(Icons.search,
+                                    size: 14, color: _xHint),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: TextField(
                                     controller: _searchController,
-                                    onChanged: (v) => setState(() => _query = v),
+                                    onChanged: (v) =>
+                                        setState(() => _query = v),
                                     cursorColor: _xBlue,
-                                    style: const TextStyle(fontSize: 12, color: Color(0xFFE8ECF2)),
+                                    style: const TextStyle(
+                                        fontSize: 12, color: Color(0xFFE8ECF2)),
                                     decoration: const InputDecoration(
                                       border: InputBorder.none,
                                       enabledBorder: InputBorder.none,
@@ -214,9 +221,11 @@ class _ProjectHomeState extends State<ProjectHome> {
                                       errorBorder: InputBorder.none,
                                       focusedErrorBorder: InputBorder.none,
                                       isDense: true,
-                                      contentPadding: EdgeInsets.symmetric(vertical: 8),
+                                      contentPadding:
+                                          EdgeInsets.symmetric(vertical: 8),
                                       hintText: "Search",
-                                      hintStyle: TextStyle(fontSize: 12, color: _xHint),
+                                      hintStyle: TextStyle(
+                                          fontSize: 12, color: _xHint),
                                     ),
                                   ),
                                 ),
@@ -228,7 +237,8 @@ class _ProjectHomeState extends State<ProjectHome> {
                                     },
                                     child: const Padding(
                                       padding: EdgeInsets.all(6),
-                                      child: Icon(Icons.close, size: 14, color: _xHint),
+                                      child: Icon(Icons.close,
+                                          size: 14, color: _xHint),
                                     ),
                                   ),
                               ],
@@ -242,28 +252,37 @@ class _ProjectHomeState extends State<ProjectHome> {
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(Icons.folder_outlined, size: 48, color: const Color(0xFF6B6B6B)),
+                                      Icon(Icons.folder_outlined,
+                                          size: 48,
+                                          color: const Color(0xFF6B6B6B)),
                                       const SizedBox(height: 12),
                                       const Text(
                                         "No projects yet",
-                                        style: TextStyle(fontSize: 13, color: Color(0xFF8E8E8E)),
+                                        style: TextStyle(
+                                            fontSize: 13,
+                                            color: Color(0xFF8E8E8E)),
                                       ),
                                       const SizedBox(height: 4),
                                       const Text(
                                         "Create or clone a project to begin",
-                                        style: TextStyle(fontSize: 11, color: Color(0xFF6B6B6B)),
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            color: Color(0xFF6B6B6B)),
                                       ),
                                     ],
                                   ),
                                 )
                               : ListView.builder(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
                                   itemCount: projects.length,
                                   itemBuilder: (context, index) {
                                     final p = projects[index];
                                     return _IdeaProjectItem(
                                       project: p,
-                                      onTap: () => context.read<AppState>().openProject(p.id),
+                                      onTap: () => context
+                                          .read<AppState>()
+                                          .openProject(p.id),
                                     );
                                   },
                                 ),
@@ -273,7 +292,7 @@ class _ProjectHomeState extends State<ProjectHome> {
                   ),
                   // Right content area
                   Expanded(
-                      child: Container(
+                    child: Container(
                       color: _xBg,
                       child: Center(
                         child: ConstrainedBox(
@@ -303,13 +322,19 @@ class _ProjectHomeState extends State<ProjectHome> {
                                     height: 80,
                                     decoration: BoxDecoration(
                                       gradient: const LinearGradient(
-                                        colors: [Color(0xFF2A98FF), Color(0xFF0A84FF)],
+                                        colors: [
+                                          Color(0xFF2A98FF),
+                                          Color(0xFF0A84FF)
+                                        ],
                                         begin: Alignment.topLeft,
                                         end: Alignment.bottomRight,
                                       ),
                                       borderRadius: BorderRadius.circular(22),
                                     ),
-                                    child: const Icon(Icons.auto_awesome_rounded, size: 40, color: Colors.white),
+                                    child: const Icon(
+                                        Icons.auto_awesome_rounded,
+                                        size: 40,
+                                        color: Colors.white),
                                   ),
                                   const SizedBox(height: 24),
                                   const Text(
@@ -324,27 +349,31 @@ class _ProjectHomeState extends State<ProjectHome> {
                                   const SizedBox(height: 8),
                                   const Text(
                                     "AI-Powered Development Workspace",
-                                    style: TextStyle(fontSize: 14, color: _xHint),
+                                    style:
+                                        TextStyle(fontSize: 14, color: _xHint),
                                   ),
                                   const SizedBox(height: 28),
                                   _IdeaActionRow(
                                     icon: Icons.add_rounded,
                                     label: S.newProject,
-                                    description: "Create empty project with AI assistance",
+                                    description:
+                                        "Create empty project with AI assistance",
                                     onTap: () => _openCreateDialog(context),
                                   ),
                                   const SizedBox(height: 10),
                                   _IdeaActionRow(
                                     icon: Icons.folder_open_rounded,
                                     label: "Open",
-                                    description: "Open local folder as workspace",
+                                    description:
+                                        "Open local folder as workspace",
                                     onTap: () => _openFolderDialog(context),
                                   ),
                                   const SizedBox(height: 10),
                                   _IdeaActionRow(
                                     icon: Icons.cloud_download_rounded,
                                     label: "Get from VCS",
-                                    description: "Clone repository from GitHub, GitLab, etc.",
+                                    description:
+                                        "Clone repository from GitHub, GitLab, etc.",
                                     onTap: () => _openCloneDialog(context),
                                   ),
                                 ],
@@ -403,7 +432,9 @@ class _RecentProjectCardState extends State<_RecentProjectCard> {
                 color: const Color(0xFF212121),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: _hovered ? frameworkColor.withOpacity(0.3) : const Color(0xFF2A2A2A),
+                  color: _hovered
+                      ? frameworkColor.withValues(alpha: 0.3)
+                      : const Color(0xFF2A2A2A),
                   width: _hovered ? 1.5 : 1,
                 ),
               ),
@@ -416,18 +447,20 @@ class _RecentProjectCardState extends State<_RecentProjectCard> {
                         width: 36,
                         height: 36,
                         decoration: BoxDecoration(
-                          color: frameworkColor.withOpacity(0.1),
+                          color: frameworkColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: Icon(frameworkIcon, size: 18, color: frameworkColor),
+                        child: Icon(frameworkIcon,
+                            size: 18, color: frameworkColor),
                       ),
                       const Spacer(),
                       Opacity(
                         opacity: _hovered ? 1 : 0,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: frameworkColor.withOpacity(0.1),
+                            color: frameworkColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -449,7 +482,8 @@ class _RecentProjectCardState extends State<_RecentProjectCard> {
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: _hovered ? frameworkColor : const Color(0xFF0F172A),
+                      color:
+                          _hovered ? frameworkColor : const Color(0xFF0F172A),
                       letterSpacing: -0.3,
                     ),
                     maxLines: 1,
@@ -457,10 +491,12 @@ class _RecentProjectCardState extends State<_RecentProjectCard> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    p.workspacePath.trim().isEmpty ? "~/projects/${p.name}" : p.workspacePath,
+                    p.workspacePath.trim().isEmpty
+                        ? "~/projects/${p.name}"
+                        : p.workspacePath,
                     style: TextStyle(
                       fontSize: 11,
-                      color: const Color(0xFF94A3B8).withOpacity(0.9),
+                      color: const Color(0xFF94A3B8).withValues(alpha: 0.9),
                       fontWeight: FontWeight.w400,
                     ),
                     maxLines: 1,
@@ -506,14 +542,12 @@ class _ActionCard extends StatefulWidget {
     required this.title,
     required this.description,
     required this.onTap,
-    this.color = const Color(0xFF10A37F),
   });
 
   final IconData icon;
   final String title;
   final String description;
   final VoidCallback onTap;
-  final Color color;
 
   @override
   State<_ActionCard> createState() => _ActionCardState();
@@ -524,6 +558,7 @@ class _ActionCardState extends State<_ActionCard> {
 
   @override
   Widget build(BuildContext context) {
+    const accent = Color(0xFF10A37F);
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: InkWell(
@@ -537,10 +572,14 @@ class _ActionCardState extends State<_ActionCard> {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: _hovered ? widget.color.withOpacity(0.08) : const Color(0xFF212121),
+              color: _hovered
+                  ? accent.withValues(alpha: 0.08)
+                  : const Color(0xFF212121),
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: _hovered ? widget.color.withOpacity(0.3) : const Color(0xFF2A2A2A),
+                color: _hovered
+                    ? accent.withValues(alpha: 0.3)
+                    : const Color(0xFF2A2A2A),
                 width: _hovered ? 1.5 : 1,
               ),
             ),
@@ -550,10 +589,10 @@ class _ActionCardState extends State<_ActionCard> {
                   width: 42,
                   height: 42,
                   decoration: BoxDecoration(
-                    color: widget.color.withOpacity(0.1),
+                    color: accent.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(widget.icon, size: 20, color: widget.color),
+                  child: Icon(widget.icon, size: 20, color: accent),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -565,7 +604,7 @@ class _ActionCardState extends State<_ActionCard> {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: _hovered ? widget.color : const Color(0xFF0F172A),
+                          color: _hovered ? accent : const Color(0xFF0F172A),
                         ),
                       ),
                       const SizedBox(height: 3),
@@ -573,7 +612,7 @@ class _ActionCardState extends State<_ActionCard> {
                         widget.description,
                         style: TextStyle(
                           fontSize: 12,
-                          color: const Color(0xFF64748B).withOpacity(0.9),
+                          color: const Color(0xFF64748B).withValues(alpha: 0.9),
                           height: 1.3,
                         ),
                       ),
@@ -585,7 +624,7 @@ class _ActionCardState extends State<_ActionCard> {
                   child: Icon(
                     Icons.arrow_forward_rounded,
                     size: 18,
-                    color: widget.color.withOpacity(0.7),
+                    color: accent.withValues(alpha: 0.7),
                   ),
                 ),
               ],
@@ -663,13 +702,11 @@ class _WindowControlButton extends StatefulWidget {
     required this.icon,
     required this.tooltip,
     required this.onTap,
-    this.danger = false,
   });
 
   final IconData icon;
   final String tooltip;
   final VoidCallback onTap;
-  final bool danger;
 
   @override
   State<_WindowControlButton> createState() => _WindowControlButtonState();
@@ -680,10 +717,9 @@ class _WindowControlButtonState extends State<_WindowControlButton> {
 
   @override
   Widget build(BuildContext context) {
-    final hoverBg = widget.danger ? const Color(0xFFEF4444) : const Color(0xFF2A2A2A);
-    final iconColor = _hovered
-        ? (widget.danger ? Colors.white : const Color(0xFFFFFFFF))
-        : const Color(0xFF8E8E8E);
+    final hoverBg = const Color(0xFF2A2A2A);
+    final iconColor =
+        _hovered ? const Color(0xFFFFFFFF) : const Color(0xFF8E8E8E);
     return Tooltip(
       message: widget.tooltip,
       child: MouseRegion(
@@ -732,7 +768,8 @@ class _FrameworkCardState extends State<_FrameworkCard> {
 
   @override
   Widget build(BuildContext context) {
-    final accentColor = widget.selected ? const Color(0xFF3B82F6) : const Color(0xFF64748B);
+    final accentColor =
+        widget.selected ? const Color(0xFF3B82F6) : const Color(0xFF64748B);
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _hovered = true),
@@ -744,7 +781,7 @@ class _FrameworkCardState extends State<_FrameworkCard> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
             color: widget.selected
-                ? const Color(0xFF10A37F).withOpacity(0.15)
+                ? const Color(0xFF10A37F).withValues(alpha: 0.15)
                 : _hovered
                     ? const Color(0xFF35373B)
                     : const Color(0xFF212121),
@@ -767,8 +804,11 @@ class _FrameworkCardState extends State<_FrameworkCard> {
                 widget.label,
                 style: TextStyle(
                   fontSize: 13,
-                  fontWeight: widget.selected ? FontWeight.w600 : FontWeight.w500,
-                  color: widget.selected ? const Color(0xFF3B82F6) : const Color(0xFF334155),
+                  fontWeight:
+                      widget.selected ? FontWeight.w600 : FontWeight.w500,
+                  color: widget.selected
+                      ? const Color(0xFF3B82F6)
+                      : const Color(0xFF334155),
                   letterSpacing: -0.2,
                 ),
               ),
@@ -780,7 +820,7 @@ class _FrameworkCardState extends State<_FrameworkCard> {
   }
 }
 
-// ������ IDEA-style Open Folder Dialog ����������������������������������������������������������������������������������
+// 锟斤拷锟斤拷锟斤拷 IDEA-style Open Folder Dialog 锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷
 
 class _IdeaOpenFolderDialog extends StatefulWidget {
   const _IdeaOpenFolderDialog({required this.appState});
@@ -862,10 +902,11 @@ class _IdeaOpenFolderDialogState extends State<_IdeaOpenFolderDialog> {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF8B5CF6).withOpacity(0.15),
+                      color: const Color(0xFF8B5CF6).withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.folder_open_outlined, color: Color(0xFF8B5CF6), size: 20),
+                    child: const Icon(Icons.folder_open_outlined,
+                        color: Color(0xFF8B5CF6), size: 20),
                   ),
                   const SizedBox(width: 16),
                   const Column(
@@ -873,17 +914,24 @@ class _IdeaOpenFolderDialogState extends State<_IdeaOpenFolderDialog> {
                     children: [
                       Text(
                         "Open Folder",
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFFFFFFFF), letterSpacing: -0.3),
+                        style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFFFFFFFF),
+                            letterSpacing: -0.3),
                       ),
                       SizedBox(height: 2),
                       Text(
                         "Open an existing project folder",
-                        style: TextStyle(fontSize: 12, color: Color(0xFF8E8E8E)),
+                        style:
+                            TextStyle(fontSize: 12, color: Color(0xFF8E8E8E)),
                       ),
                     ],
                   ),
                   const Spacer(),
-                  _IdeaIconButton(icon: Icons.close, onTap: () => Navigator.of(context).pop()),
+                  _IdeaIconButton(
+                      icon: Icons.close,
+                      onTap: () => Navigator.of(context).pop()),
                 ],
               ),
             ),
@@ -901,22 +949,26 @@ class _IdeaOpenFolderDialogState extends State<_IdeaOpenFolderDialog> {
                         child: _IdeaTextField(
                           controller: _pathController,
                           placeholder: r"C:\dev\my-project",
-                          prefix: const Icon(Icons.folder_outlined, size: 16, color: Color(0xFF8E8E8E)),
+                          prefix: const Icon(Icons.folder_outlined,
+                              size: 16, color: Color(0xFF8E8E8E)),
                         ),
                       ),
                       const SizedBox(width: 8),
-                      _IdeaButton(label: "Browse", onTap: _selectDir, secondary: true),
+                      _IdeaButton(
+                          label: "Browse", onTap: _selectDir, secondary: true),
                     ],
                   ),
                   const SizedBox(height: 12),
                   Row(
-                children: const [
-                      Icon(Icons.info_outline, size: 14, color: Color(0xFF7C879D)),
+                    children: const [
+                      Icon(Icons.info_outline,
+                          size: 14, color: Color(0xFF7C879D)),
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           "Project type will be auto-detected based on folder contents",
-                          style: TextStyle(fontSize: 12, color: Color(0xFF99A1B3)),
+                          style:
+                              TextStyle(fontSize: 12, color: Color(0xFF99A1B3)),
                         ),
                       ),
                     ],
@@ -932,9 +984,13 @@ class _IdeaOpenFolderDialogState extends State<_IdeaOpenFolderDialog> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.error_outline, size: 18, color: Color(0xFFE06C75)),
+                          const Icon(Icons.error_outline,
+                              size: 18, color: Color(0xFFE06C75)),
                           const SizedBox(width: 10),
-                          Expanded(child: Text(_errorMessage!, style: const TextStyle(fontSize: 13, color: Color(0xFFE06C75)))),
+                          Expanded(
+                              child: Text(_errorMessage!,
+                                  style: const TextStyle(
+                                      fontSize: 13, color: Color(0xFFE06C75)))),
                         ],
                       ),
                     ),
@@ -948,14 +1004,23 @@ class _IdeaOpenFolderDialogState extends State<_IdeaOpenFolderDialog> {
               decoration: const BoxDecoration(
                 color: Color(0xFF1D2027),
                 border: Border(top: BorderSide(color: Color(0xFF343A46))),
-                borderRadius: BorderRadius.only(bottomLeft: Radius.circular(14), bottomRight: Radius.circular(14)),
+                borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(14),
+                    bottomRight: Radius.circular(14)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  _IdeaButton(label: S.cancel, onTap: () => Navigator.of(context).pop(), secondary: true),
+                  _IdeaButton(
+                      label: S.cancel,
+                      onTap: () => Navigator.of(context).pop(),
+                      secondary: true),
                   const SizedBox(width: 12),
-                  _IdeaButton(label: "Open", onTap: _isOpening ? null : _open, primary: true, icon: Icons.folder_open_outlined),
+                  _IdeaButton(
+                      label: "Open",
+                      onTap: _isOpening ? null : _open,
+                      primary: true,
+                      icon: Icons.folder_open_outlined),
                 ],
               ),
             ),
@@ -966,14 +1031,15 @@ class _IdeaOpenFolderDialogState extends State<_IdeaOpenFolderDialog> {
   }
 }
 
-// ������ IDEA-style Create Project Dialog ����������������������������������������������������������������������������
+// 锟斤拷锟斤拷锟斤拷 IDEA-style Create Project Dialog 锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷
 
 class _IdeaCreateProjectDialog extends StatefulWidget {
   const _IdeaCreateProjectDialog({required this.appState});
   final AppState appState;
 
   @override
-  State<_IdeaCreateProjectDialog> createState() => _IdeaCreateProjectDialogState();
+  State<_IdeaCreateProjectDialog> createState() =>
+      _IdeaCreateProjectDialogState();
 }
 
 class _IdeaCreateProjectDialogState extends State<_IdeaCreateProjectDialog> {
@@ -1047,10 +1113,11 @@ class _IdeaCreateProjectDialogState extends State<_IdeaCreateProjectDialog> {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF10B981).withOpacity(0.15),
+                      color: const Color(0xFF10B981).withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.add_rounded, color: Color(0xFF10B981), size: 20),
+                    child: const Icon(Icons.add_rounded,
+                        color: Color(0xFF10B981), size: 20),
                   ),
                   const SizedBox(width: 16),
                   Column(
@@ -1058,17 +1125,24 @@ class _IdeaCreateProjectDialogState extends State<_IdeaCreateProjectDialog> {
                     children: [
                       Text(
                         S.newProject,
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFFFFFFFF), letterSpacing: -0.3),
+                        style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFFFFFFFF),
+                            letterSpacing: -0.3),
                       ),
                       const SizedBox(height: 2),
                       const Text(
                         "Create a new project with AI assistance",
-                        style: TextStyle(fontSize: 12, color: Color(0xFF8E8E8E)),
+                        style:
+                            TextStyle(fontSize: 12, color: Color(0xFF8E8E8E)),
                       ),
                     ],
                   ),
                   const Spacer(),
-                  _IdeaIconButton(icon: Icons.close, onTap: () => Navigator.of(context).pop()),
+                  _IdeaIconButton(
+                      icon: Icons.close,
+                      onTap: () => Navigator.of(context).pop()),
                 ],
               ),
             ),
@@ -1084,7 +1158,8 @@ class _IdeaCreateProjectDialogState extends State<_IdeaCreateProjectDialog> {
                     controller: _nameController,
                     placeholder: "my-awesome-project",
                     autofocus: true,
-                    prefix: const Icon(Icons.edit_outlined, size: 16, color: Color(0xFF8E8E8E)),
+                    prefix: const Icon(Icons.edit_outlined,
+                        size: 16, color: Color(0xFF8E8E8E)),
                   ),
                   const SizedBox(height: 20),
                   const _IdeaFieldLabel(label: "Description"),
@@ -1102,13 +1177,49 @@ class _IdeaCreateProjectDialogState extends State<_IdeaCreateProjectDialog> {
                     spacing: 10,
                     runSpacing: 10,
                     children: [
-                      _IdeaDarkFrameworkCard(label: "Flutter", value: "flutter", icon: Icons.flutter_dash_rounded, selected: _framework == "flutter", onTap: () => setState(() => _framework = "flutter")),
-                      _IdeaDarkFrameworkCard(label: "React", value: "react", icon: Icons.bubble_chart_rounded, selected: _framework == "react", onTap: () => setState(() => _framework = "react")),
-                      _IdeaDarkFrameworkCard(label: "Vue", value: "vue", icon: Icons.eco_outlined, selected: _framework == "vue", onTap: () => setState(() => _framework = "vue")),
-                      _IdeaDarkFrameworkCard(label: "Python", value: "python", icon: Icons.code_rounded, selected: _framework == "python", onTap: () => setState(() => _framework = "python")),
-                      _IdeaDarkFrameworkCard(label: "Uniapp", value: "uniapp", icon: Icons.web_rounded, selected: _framework == "uniapp", onTap: () => setState(() => _framework = "uniapp")),
-                      _IdeaDarkFrameworkCard(label: "MiniProgram", value: "wechat_miniprogram", icon: Icons.chat_bubble_outline_rounded, selected: _framework == "wechat_miniprogram", onTap: () => setState(() => _framework = "wechat_miniprogram")),
-                      _IdeaDarkFrameworkCard(label: "General", value: "general", icon: Icons.developer_mode_rounded, selected: _framework == "general", onTap: () => setState(() => _framework = "general")),
+                      _IdeaDarkFrameworkCard(
+                          label: "Flutter",
+                          value: "flutter",
+                          icon: Icons.flutter_dash_rounded,
+                          selected: _framework == "flutter",
+                          onTap: () => setState(() => _framework = "flutter")),
+                      _IdeaDarkFrameworkCard(
+                          label: "React",
+                          value: "react",
+                          icon: Icons.bubble_chart_rounded,
+                          selected: _framework == "react",
+                          onTap: () => setState(() => _framework = "react")),
+                      _IdeaDarkFrameworkCard(
+                          label: "Vue",
+                          value: "vue",
+                          icon: Icons.eco_outlined,
+                          selected: _framework == "vue",
+                          onTap: () => setState(() => _framework = "vue")),
+                      _IdeaDarkFrameworkCard(
+                          label: "Python",
+                          value: "python",
+                          icon: Icons.code_rounded,
+                          selected: _framework == "python",
+                          onTap: () => setState(() => _framework = "python")),
+                      _IdeaDarkFrameworkCard(
+                          label: "Uniapp",
+                          value: "uniapp",
+                          icon: Icons.web_rounded,
+                          selected: _framework == "uniapp",
+                          onTap: () => setState(() => _framework = "uniapp")),
+                      _IdeaDarkFrameworkCard(
+                          label: "MiniProgram",
+                          value: "wechat_miniprogram",
+                          icon: Icons.chat_bubble_outline_rounded,
+                          selected: _framework == "wechat_miniprogram",
+                          onTap: () => setState(
+                              () => _framework = "wechat_miniprogram")),
+                      _IdeaDarkFrameworkCard(
+                          label: "General",
+                          value: "general",
+                          icon: Icons.developer_mode_rounded,
+                          selected: _framework == "general",
+                          onTap: () => setState(() => _framework = "general")),
                     ],
                   ),
                   if (_errorMessage != null) ...[
@@ -1122,9 +1233,13 @@ class _IdeaCreateProjectDialogState extends State<_IdeaCreateProjectDialog> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.error_outline, size: 18, color: Color(0xFFE06C75)),
+                          const Icon(Icons.error_outline,
+                              size: 18, color: Color(0xFFE06C75)),
                           const SizedBox(width: 10),
-                          Expanded(child: Text(_errorMessage!, style: const TextStyle(fontSize: 13, color: Color(0xFFE06C75)))),
+                          Expanded(
+                              child: Text(_errorMessage!,
+                                  style: const TextStyle(
+                                      fontSize: 13, color: Color(0xFFE06C75)))),
                         ],
                       ),
                     ),
@@ -1138,14 +1253,23 @@ class _IdeaCreateProjectDialogState extends State<_IdeaCreateProjectDialog> {
               decoration: const BoxDecoration(
                 color: Color(0xFF1D2027),
                 border: Border(top: BorderSide(color: Color(0xFF343A46))),
-                borderRadius: BorderRadius.only(bottomLeft: Radius.circular(14), bottomRight: Radius.circular(14)),
+                borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(14),
+                    bottomRight: Radius.circular(14)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  _IdeaButton(label: S.cancel, onTap: () => Navigator.of(context).pop(), secondary: true),
+                  _IdeaButton(
+                      label: S.cancel,
+                      onTap: () => Navigator.of(context).pop(),
+                      secondary: true),
                   const SizedBox(width: 12),
-                  _IdeaButton(label: S.create, onTap: _isCreating ? null : _create, primary: true, icon: Icons.add_rounded),
+                  _IdeaButton(
+                      label: S.create,
+                      onTap: _isCreating ? null : _create,
+                      primary: true,
+                      icon: Icons.add_rounded),
                 ],
               ),
             ),
@@ -1156,7 +1280,7 @@ class _IdeaCreateProjectDialogState extends State<_IdeaCreateProjectDialog> {
   }
 }
 
-// ������ IDEA-style Dark Framework Card ��������������������������������������������������������������������������������
+// 锟斤拷锟斤拷锟斤拷 IDEA-style Dark Framework Card 锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷
 
 class _IdeaDarkFrameworkCard extends StatefulWidget {
   const _IdeaDarkFrameworkCard({
@@ -1181,14 +1305,22 @@ class _IdeaDarkFrameworkCardState extends State<_IdeaDarkFrameworkCard> {
 
   Color get _color {
     switch (widget.value) {
-      case "flutter": return const Color(0xFF0175C2);
-      case "react": return const Color(0xFF61DAFB);
-      case "vue": return const Color(0xFF42B883);
-      case "python": return const Color(0xFF3776AB);
-      case "uniapp": return const Color(0xFF2B9939);
-      case "wechat_miniprogram": return const Color(0xFF07C160);
-      case "general": return const Color(0xFF6366F1);
-      default: return const Color(0xFF8E8E8E);
+      case "flutter":
+        return const Color(0xFF0175C2);
+      case "react":
+        return const Color(0xFF61DAFB);
+      case "vue":
+        return const Color(0xFF42B883);
+      case "python":
+        return const Color(0xFF3776AB);
+      case "uniapp":
+        return const Color(0xFF2B9939);
+      case "wechat_miniprogram":
+        return const Color(0xFF07C160);
+      case "general":
+        return const Color(0xFF6366F1);
+      default:
+        return const Color(0xFF8E8E8E);
     }
   }
 
@@ -1205,7 +1337,7 @@ class _IdeaDarkFrameworkCardState extends State<_IdeaDarkFrameworkCard> {
           height: 72,
           decoration: BoxDecoration(
             color: widget.selected
-                ? _color.withOpacity(0.16)
+                ? _color.withValues(alpha: 0.16)
                 : _hovered
                     ? const Color(0xFF2D3340)
                     : const Color(0xFF252A33),
@@ -1222,13 +1354,16 @@ class _IdeaDarkFrameworkCardState extends State<_IdeaDarkFrameworkCard> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(widget.icon, size: 24, color: widget.selected ? _color : const Color(0xFF8E8E8E)),
+              Icon(widget.icon,
+                  size: 24,
+                  color: widget.selected ? _color : const Color(0xFF8E8E8E)),
               const SizedBox(height: 6),
               Text(
                 widget.label,
                 style: TextStyle(
                   fontSize: 11,
-                  fontWeight: widget.selected ? FontWeight.w600 : FontWeight.w500,
+                  fontWeight:
+                      widget.selected ? FontWeight.w600 : FontWeight.w500,
                   color: widget.selected ? _color : const Color(0xFFA4ADBD),
                 ),
               ),
@@ -1240,7 +1375,7 @@ class _IdeaDarkFrameworkCardState extends State<_IdeaDarkFrameworkCard> {
   }
 }
 
-// ������ IDEA-style Text Area ����������������������������������������������������������������������������������������������������
+// 锟斤拷锟斤拷锟斤拷 IDEA-style Text Area 锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷
 
 class _IdeaTextArea extends StatefulWidget {
   const _IdeaTextArea({
@@ -1289,7 +1424,8 @@ class _IdeaTextAreaState extends State<_IdeaTextArea> {
             style: const TextStyle(fontSize: 13, color: Color(0xFFE8ECF2)),
             decoration: InputDecoration(
               hintText: widget.placeholder,
-              hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF99A1B3)),
+              hintStyle:
+                  const TextStyle(fontSize: 13, color: Color(0xFF99A1B3)),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.all(12),
             ),
@@ -1300,7 +1436,7 @@ class _IdeaTextAreaState extends State<_IdeaTextArea> {
   }
 }
 
-// ������ IDEA-style Clone Dialog ����������������������������������������������������������������������������������������������
+// 锟斤拷锟斤拷锟斤拷 IDEA-style Clone Dialog 锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷
 
 class _IdeaCloneDialog extends StatefulWidget {
   const _IdeaCloneDialog({required this.appState});
@@ -1339,11 +1475,11 @@ class _IdeaCloneDialogState extends State<_IdeaCloneDialog> {
     // Auto-detect repo name from URL and append to directory
     final url = _urlController.text.trim();
     if (url.isEmpty) return;
-    
+
     final repoName = _extractRepoName(url);
     if (repoName.isNotEmpty) {
       final baseDir = _directoryController.text.trim();
-      final basePath = baseDir.contains(RegExp(r'[\\/][^\\/]+$')) 
+      final basePath = baseDir.contains(RegExp(r'[\\/][^\\/]+$'))
           ? baseDir.replaceFirst(RegExp(r'[\\/][^\\/]+$'), '')
           : baseDir;
       if (!_directoryController.text.endsWith(repoName)) {
@@ -1361,7 +1497,7 @@ class _IdeaCloneDialogState extends State<_IdeaCloneDialog> {
       RegExp(r'bitbucket\.org[/:]([^/]+)/([^/]+?)(?:\.git)?$'),
       RegExp(r'/([^/]+?)(?:\.git)?$'),
     ];
-    
+
     for (final pattern in patterns) {
       final match = pattern.firstMatch(url);
       if (match != null) {
@@ -1377,7 +1513,8 @@ class _IdeaCloneDialogState extends State<_IdeaCloneDialog> {
       final repoName = _extractRepoName(_urlController.text);
       final sep = picked.contains('/') ? '/' : '\\';
       setState(() {
-        _directoryController.text = repoName.isEmpty ? picked : "$picked$sep$repoName";
+        _directoryController.text =
+            repoName.isEmpty ? picked : "$picked$sep$repoName";
       });
     }
   }
@@ -1405,9 +1542,10 @@ class _IdeaCloneDialogState extends State<_IdeaCloneDialog> {
     });
 
     // Simulate progress updates
-    final progressTimer = Stream.periodic(const Duration(milliseconds: 100), (i) => i)
-        .take(50)
-        .listen((i) {
+    final progressTimer =
+        Stream.periodic(const Duration(milliseconds: 100), (i) => i)
+            .take(50)
+            .listen((i) {
       if (mounted && _isCloning) {
         setState(() => _progress = (i / 50) * 0.9);
       }
@@ -1420,9 +1558,9 @@ class _IdeaCloneDialogState extends State<_IdeaCloneDialog> {
         branch: branch,
         framework: "general", // Will be auto-detected
       );
-      
+
       progressTimer.cancel();
-      
+
       if (!mounted) return;
       setState(() {
         _isCloning = false;
@@ -1472,10 +1610,11 @@ class _IdeaCloneDialogState extends State<_IdeaCloneDialog> {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF10A37F).withOpacity(0.15),
+                      color: const Color(0xFF10A37F).withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.cloud_download_outlined, color: Color(0xFF10A37F), size: 20),
+                    child: const Icon(Icons.cloud_download_outlined,
+                        color: Color(0xFF10A37F), size: 20),
                   ),
                   const SizedBox(width: 16),
                   const Column(
@@ -1522,7 +1661,8 @@ class _IdeaCloneDialogState extends State<_IdeaCloneDialog> {
                     controller: _urlController,
                     placeholder: "https://github.com/user/repository.git",
                     autofocus: true,
-                    prefix: const Icon(Icons.link, size: 16, color: Color(0xFF8E8E8E)),
+                    prefix: const Icon(Icons.link,
+                        size: 16, color: Color(0xFF8E8E8E)),
                   ),
                   const SizedBox(height: 20),
 
@@ -1535,7 +1675,8 @@ class _IdeaCloneDialogState extends State<_IdeaCloneDialog> {
                         child: _IdeaTextField(
                           controller: _directoryController,
                           placeholder: r"C:\dev\project",
-                          prefix: const Icon(Icons.folder_outlined, size: 16, color: Color(0xFF8E8E8E)),
+                          prefix: const Icon(Icons.folder_outlined,
+                              size: 16, color: Color(0xFF8E8E8E)),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -1554,25 +1695,30 @@ class _IdeaCloneDialogState extends State<_IdeaCloneDialog> {
                   _IdeaTextField(
                     controller: _branchController,
                     placeholder: "Leave empty for default branch",
-                    prefix: const Icon(Icons.call_split, size: 16, color: Color(0xFF8E8E8E)),
+                    prefix: const Icon(Icons.call_split,
+                        size: 16, color: Color(0xFF8E8E8E)),
                   ),
                   const SizedBox(height: 12),
                   // Info text
                   Row(
                     children: [
-                      Icon(Icons.info_outline, size: 14, color: const Color(0xFF6B6B6B)),
+                      Icon(Icons.info_outline,
+                          size: 14, color: const Color(0xFF6B6B6B)),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           "Project type will be auto-detected after cloning",
-                          style: TextStyle(fontSize: 12, color: const Color(0xFF6B6B6B)),
+                          style: TextStyle(
+                              fontSize: 12, color: const Color(0xFF6B6B6B)),
                         ),
                       ),
                     ],
                   ),
 
                   // Progress/Error/Success
-                  if (_isCloning || _errorMessage != null || _successMessage != null) ...[
+                  if (_isCloning ||
+                      _errorMessage != null ||
+                      _successMessage != null) ...[
                     const SizedBox(height: 24),
                     if (_isCloning) ...[
                       Row(
@@ -1582,7 +1728,8 @@ class _IdeaCloneDialogState extends State<_IdeaCloneDialog> {
                             height: 16,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation(Color(0xFF10A37F)),
+                              valueColor:
+                                  AlwaysStoppedAnimation(Color(0xFF10A37F)),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -1598,13 +1745,14 @@ class _IdeaCloneDialogState extends State<_IdeaCloneDialog> {
                       const SizedBox(height: 12),
                       ClipRRect(
                         borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: _progress,
-                      minHeight: 4,
-                      backgroundColor: const Color(0xFF2B3240),
-                      valueColor: const AlwaysStoppedAnimation(Color(0xFF0A84FF)),
-                    ),
-                  ),
+                        child: LinearProgressIndicator(
+                          value: _progress,
+                          minHeight: 4,
+                          backgroundColor: const Color(0xFF2B3240),
+                          valueColor:
+                              const AlwaysStoppedAnimation(Color(0xFF0A84FF)),
+                        ),
+                      ),
                     ],
                     if (_errorMessage != null)
                       Container(
@@ -1616,12 +1764,14 @@ class _IdeaCloneDialogState extends State<_IdeaCloneDialog> {
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.error_outline, size: 18, color: Color(0xFFE06C75)),
+                            const Icon(Icons.error_outline,
+                                size: 18, color: Color(0xFFE06C75)),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
                                 _errorMessage!,
-                                style: const TextStyle(fontSize: 13, color: Color(0xFFE06C75)),
+                                style: const TextStyle(
+                                    fontSize: 13, color: Color(0xFFE06C75)),
                               ),
                             ),
                           ],
@@ -1637,12 +1787,14 @@ class _IdeaCloneDialogState extends State<_IdeaCloneDialog> {
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.check_circle_outline, size: 18, color: Color(0xFF98C379)),
+                            const Icon(Icons.check_circle_outline,
+                                size: 18, color: Color(0xFF98C379)),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
                                 _successMessage!,
-                                style: const TextStyle(fontSize: 13, color: Color(0xFF98C379)),
+                                style: const TextStyle(
+                                    fontSize: 13, color: Color(0xFF98C379)),
                               ),
                             ),
                           ],
@@ -1691,7 +1843,7 @@ class _IdeaCloneDialogState extends State<_IdeaCloneDialog> {
   }
 }
 
-// ������ IDEA-style Components ��������������������������������������������������������������������������������������������������
+// 锟斤拷锟斤拷锟斤拷 IDEA-style Components 锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷
 
 class _IdeaFieldLabel extends StatelessWidget {
   const _IdeaFieldLabel({required this.label, this.required = false});
@@ -1712,7 +1864,8 @@ class _IdeaFieldLabel extends StatelessWidget {
         ),
         if (required) ...[
           const SizedBox(width: 4),
-          const Text("*", style: TextStyle(fontSize: 12, color: Color(0xFFE06C75))),
+          const Text("*",
+              style: TextStyle(fontSize: 12, color: Color(0xFFE06C75))),
         ],
       ],
     );
@@ -1725,19 +1878,11 @@ class _IdeaTextField extends StatefulWidget {
     this.placeholder,
     this.autofocus = false,
     this.prefix,
-    this.suffix,
-    this.obscureText = false,
-    this.onChanged,
-    this.keyboardType,
   });
   final TextEditingController controller;
   final String? placeholder;
   final bool autofocus;
   final Widget? prefix;
-  final Widget? suffix;
-  final bool obscureText;
-  final ValueChanged<String>? onChanged;
-  final TextInputType? keyboardType;
 
   @override
   State<_IdeaTextField> createState() => _IdeaTextFieldState();
@@ -1761,7 +1906,7 @@ class _IdeaTextFieldState extends State<_IdeaTextField> {
         : _hovered
             ? _xStrokeHover
             : _xStroke;
-            
+
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
@@ -1802,9 +1947,6 @@ class _IdeaTextFieldState extends State<_IdeaTextField> {
                 child: TextField(
                   controller: widget.controller,
                   autofocus: widget.autofocus,
-                  obscureText: widget.obscureText,
-                  onChanged: widget.onChanged,
-                  keyboardType: widget.keyboardType,
                   cursorColor: _xBlue,
                   cursorWidth: 1.5,
                   style: const TextStyle(
@@ -1827,7 +1969,7 @@ class _IdeaTextFieldState extends State<_IdeaTextField> {
                     focusedErrorBorder: InputBorder.none,
                     contentPadding: EdgeInsets.only(
                       left: widget.prefix != null ? 8 : 14,
-                      right: widget.suffix != null ? 8 : 14,
+                      right: 14,
                       top: 11,
                       bottom: 11,
                     ),
@@ -1836,16 +1978,6 @@ class _IdeaTextFieldState extends State<_IdeaTextField> {
                 ),
               ),
             ),
-            if (widget.suffix != null) ...[
-              IconTheme(
-                data: IconThemeData(
-                  color: _focused ? _xBlue : _xHint,
-                  size: 18,
-                ),
-                child: widget.suffix!,
-              ),
-              const SizedBox(width: 12),
-            ],
           ],
         ),
       ),
@@ -1903,7 +2035,8 @@ class _IdeaButtonState extends State<_IdeaButton> {
         onTap: widget.onTap,
         child: Container(
           height: 34,
-          padding: EdgeInsets.symmetric(horizontal: widget.icon != null ? 16 : 20),
+          padding:
+              EdgeInsets.symmetric(horizontal: widget.icon != null ? 16 : 20),
           decoration: BoxDecoration(
             color: bgColor,
             borderRadius: BorderRadius.circular(9),
@@ -2053,7 +2186,8 @@ class _WindowButtonState extends State<_WindowButton> {
 // IDEA-style Mini Button (small header buttons)
 // ============================================================================
 class _IdeaMiniButton extends StatefulWidget {
-  const _IdeaMiniButton({required this.icon, required this.onTap, this.tooltip});
+  const _IdeaMiniButton(
+      {required this.icon, required this.onTap, this.tooltip});
   final IconData icon;
   final VoidCallback onTap;
   final String? tooltip;
@@ -2103,31 +2237,8 @@ class _IdeaProjectItem extends StatefulWidget {
   State<_IdeaProjectItem> createState() => _IdeaProjectItemState();
 }
 
-class _IdeaProjectItemState extends State<_IdeaProjectItem> 
-    with SingleTickerProviderStateMixin {
+class _IdeaProjectItemState extends State<_IdeaProjectItem> {
   bool _hovered = false;
-  bool _showActions = false;
-  late AnimationController _slideController;
-  late Animation<Offset> _slideAnim;
-
-  @override
-  void initState() {
-    super.initState();
-    _slideController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 150),
-    );
-    _slideAnim = Tween<Offset>(
-      begin: const Offset(0.5, 0),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic));
-  }
-
-  @override
-  void dispose() {
-    _slideController.dispose();
-    super.dispose();
-  }
 
   IconData _frameworkIcon(String framework) {
     final f = framework.toLowerCase();
@@ -2153,32 +2264,40 @@ class _IdeaProjectItemState extends State<_IdeaProjectItem>
     return const Color(0xFF8E8E8E);
   }
 
-  String _formatLastOpened(DateTime? lastOpened) {
-    if (lastOpened == null) return "";
-    final now = DateTime.now();
-    final diff = now.difference(lastOpened);
-    if (diff.inMinutes < 60) return "${diff.inMinutes}m ago";
-    if (diff.inHours < 24) return "${diff.inHours}h ago";
-    if (diff.inDays < 7) return "${diff.inDays}d ago";
-    return "${lastOpened.month}/${lastOpened.day}";
-  }
-
   void _onHover(bool hovered) {
     setState(() => _hovered = hovered);
-    if (hovered) {
-      _slideController.forward();
-    } else {
-      _slideController.reverse();
-      _showActions = false;
-    }
   }
 
   Future<void> _openTerminal() async {
-    final path = widget.project.workspacePath.trim();
+    final path = _resolveWorkspacePath();
     if (path.isEmpty) return;
+    final dir = Directory(path);
+    if (!await dir.exists()) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Workspace not found: $path")),
+      );
+      return;
+    }
     try {
       if (Platform.isWindows) {
-        await Process.start("cmd", ["/c", "start", "cmd", "/K", "cd /d \"$path\""]);
+        try {
+          await Process.start("wt.exe", ["-d", path], runInShell: true);
+          return;
+        } catch (_) {}
+        try {
+          await Process.start(
+            "powershell.exe",
+            ["-NoExit", "-Command", "Set-Location -LiteralPath \"$path\""],
+            runInShell: true,
+          );
+          return;
+        } catch (_) {}
+        await Process.start(
+          "cmd.exe",
+          ["/c", "start", "", "cmd.exe", "/K", "cd /d \"$path\""],
+          runInShell: true,
+        );
         return;
       }
       if (Platform.isMacOS) {
@@ -2186,20 +2305,29 @@ class _IdeaProjectItemState extends State<_IdeaProjectItem>
         return;
       }
       if (Platform.isLinux) {
-        await Process.start("x-terminal-emulator", ["--working-directory=$path"]);
+        await Process.start(
+            "x-terminal-emulator", ["--working-directory=$path"]);
         return;
       }
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to open terminal")),
+        SnackBar(content: Text("Failed to open terminal: $path")),
       );
     }
   }
 
   Future<void> _revealInExplorer() async {
-    final path = widget.project.workspacePath.trim();
+    final path = _resolveWorkspacePath();
     if (path.isEmpty) return;
+    final dir = Directory(path);
+    if (!await dir.exists()) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Workspace not found: $path")),
+      );
+      return;
+    }
     try {
       if (Platform.isWindows) {
         await Process.start("explorer.exe", [path]);
@@ -2216,8 +2344,82 @@ class _IdeaProjectItemState extends State<_IdeaProjectItem>
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to open folder")),
+        SnackBar(content: Text("Failed to reveal folder: $path")),
       );
+    }
+  }
+
+  String _resolveWorkspacePath() {
+    final raw = widget.project.workspacePath.trim().isEmpty
+        ? "./workspace/${widget.project.name}"
+        : widget.project.workspacePath.trim();
+    if (raw.isEmpty) return "";
+    var value = raw;
+    if (value.startsWith("~")) {
+      final home = Platform.environment["USERPROFILE"] ??
+          Platform.environment["HOME"] ??
+          "";
+      if (home.isNotEmpty) {
+        value = "$home${value.substring(1)}";
+      }
+    }
+    if (_isAbsolutePath(value)) return value;
+    return Directory.current.uri
+        .resolve(value)
+        .toFilePath(windows: Platform.isWindows);
+  }
+
+  bool _isAbsolutePath(String path) {
+    if (path.startsWith("/") || path.startsWith("\\")) return true;
+    return RegExp(r"^[A-Za-z]:[\\/]").hasMatch(path);
+  }
+
+  Future<void> _showMoreActionsMenu() async {
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: const Color(0xFF252A33),
+      builder: (ctx) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              dense: true,
+              leading: const Icon(Icons.open_in_new_rounded,
+                  color: Color(0xFFE6E8EE)),
+              title: const Text("Open Project",
+                  style: TextStyle(color: Color(0xFFE6E8EE))),
+              onTap: () => Navigator.of(ctx).pop("open"),
+            ),
+            ListTile(
+              dense: true,
+              leading:
+                  const Icon(Icons.terminal_rounded, color: Color(0xFFE6E8EE)),
+              title: const Text("Open Terminal",
+                  style: TextStyle(color: Color(0xFFE6E8EE))),
+              onTap: () => Navigator.of(ctx).pop("terminal"),
+            ),
+            ListTile(
+              dense: true,
+              leading: const Icon(Icons.folder_open_rounded,
+                  color: Color(0xFFE6E8EE)),
+              title: const Text("Reveal in Explorer",
+                  style: TextStyle(color: Color(0xFFE6E8EE))),
+              onTap: () => Navigator.of(ctx).pop("reveal"),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || selected == null) return;
+    if (selected == "open") {
+      widget.onTap();
+      return;
+    }
+    if (selected == "terminal") {
+      await _openTerminal();
+      return;
+    }
+    if (selected == "reveal") {
+      await _revealInExplorer();
     }
   }
 
@@ -2231,14 +2433,13 @@ class _IdeaProjectItemState extends State<_IdeaProjectItem>
       onExit: (_) => _onHover(false),
       child: GestureDetector(
         onTap: widget.onTap,
-        onSecondaryTap: () => setState(() => _showActions = !_showActions),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
             color: _hovered ? const Color(0xFF2A2A2A) : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
-            border: _hovered 
-                ? Border.all(color: color.withOpacity(0.3), width: 1)
+            border: _hovered
+                ? Border.all(color: color.withValues(alpha: 0.3), width: 1)
                 : null,
           ),
           child: Row(
@@ -2249,16 +2450,19 @@ class _IdeaProjectItemState extends State<_IdeaProjectItem>
                 decoration: BoxDecoration(
                   gradient: _hovered
                       ? LinearGradient(
-                          colors: [color.withOpacity(0.3), color.withOpacity(0.15)],
+                          colors: [
+                            color.withValues(alpha: 0.3),
+                            color.withValues(alpha: 0.15)
+                          ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         )
                       : null,
-                  color: _hovered ? null : color.withOpacity(0.15),
+                  color: _hovered ? null : color.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
-
                 ),
-                child: Icon(_frameworkIcon(p.framework), size: 16, color: color),
+                child:
+                    Icon(_frameworkIcon(p.framework), size: 16, color: color),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -2283,9 +2487,10 @@ class _IdeaProjectItemState extends State<_IdeaProjectItem>
                         if (_hovered) ...[
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              color: color.withOpacity(0.15),
+                              color: color.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
@@ -2306,8 +2511,11 @@ class _IdeaProjectItemState extends State<_IdeaProjectItem>
                       children: [
                         Expanded(
                           child: Text(
-                            p.workspacePath.isNotEmpty ? p.workspacePath : "~/projects/${p.name}",
-                            style: const TextStyle(fontSize: 11, color: Color(0xFF6E6E6E)),
+                            p.workspacePath.isNotEmpty
+                                ? p.workspacePath
+                                : "~/projects/${p.name}",
+                            style: const TextStyle(
+                                fontSize: 11, color: Color(0xFF6E6E6E)),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -2317,35 +2525,32 @@ class _IdeaProjectItemState extends State<_IdeaProjectItem>
                   ],
                 ),
               ),
-              if (_hovered)
-                SlideTransition(
-                  position: _slideAnim,
-                  child: FadeTransition(
-                    opacity: _slideController,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _ProjectQuickAction(
-                          icon: Icons.terminal,
-                          tooltip: "Open Terminal",
-                          onTap: _openTerminal,
-                        ),
-                        const SizedBox(width: 4),
-                        _ProjectQuickAction(
-                          icon: Icons.folder_open_outlined,
-                          tooltip: "Reveal in Explorer",
-                          onTap: _revealInExplorer,
-                        ),
-                        const SizedBox(width: 4),
-                        _ProjectQuickAction(
-                          icon: Icons.more_horiz,
-                          tooltip: "More",
-                          onTap: () => setState(() => _showActions = true),
-                        ),
-                      ],
+              AnimatedOpacity(
+                duration: const Duration(milliseconds: 120),
+                opacity: _hovered ? 1 : 0.82,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _ProjectQuickAction(
+                      icon: Icons.terminal,
+                      tooltip: "Open Terminal",
+                      onTap: _openTerminal,
                     ),
-                  ),
+                    const SizedBox(width: 4),
+                    _ProjectQuickAction(
+                      icon: Icons.folder_open_outlined,
+                      tooltip: "Reveal in Explorer",
+                      onTap: _revealInExplorer,
+                    ),
+                    const SizedBox(width: 4),
+                    _ProjectQuickAction(
+                      icon: Icons.more_horiz,
+                      tooltip: "More",
+                      onTap: _showMoreActionsMenu,
+                    ),
+                  ],
                 ),
+              ),
             ],
           ),
         ),
@@ -2380,6 +2585,7 @@ class _ProjectQuickActionState extends State<_ProjectQuickAction> {
         onExit: (_) => setState(() => _hovered = false),
         cursor: SystemMouseCursors.click,
         child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
           onTap: widget.onTap,
           child: Container(
             width: 24,
@@ -2391,7 +2597,8 @@ class _ProjectQuickActionState extends State<_ProjectQuickAction> {
             child: Icon(
               widget.icon,
               size: 14,
-              color: _hovered ? const Color(0xFF10A37F) : const Color(0xFF8E8E8E),
+              color:
+                  _hovered ? const Color(0xFF10A37F) : const Color(0xFF8E8E8E),
             ),
           ),
         ),
@@ -2446,7 +2653,8 @@ class _IdeaActionRowState extends State<_IdeaActionRow> {
                   ),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: _hovered ? const Color(0xFF4A5C7C) : const Color(0xFF343A46),
+              color:
+                  _hovered ? const Color(0xFF4A5C7C) : const Color(0xFF343A46),
               width: 1,
             ),
           ),
@@ -2456,10 +2664,11 @@ class _IdeaActionRowState extends State<_IdeaActionRow> {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0A84FF).withOpacity(0.18),
+                  color: const Color(0xFF0A84FF).withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(widget.icon, size: 20, color: const Color(0xFF2A98FF)),
+                child:
+                    Icon(widget.icon, size: 20, color: const Color(0xFF2A98FF)),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -2477,7 +2686,8 @@ class _IdeaActionRowState extends State<_IdeaActionRow> {
                     const SizedBox(height: 4),
                     Text(
                       widget.description,
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF99A1B3)),
+                      style: const TextStyle(
+                          fontSize: 12, color: Color(0xFF99A1B3)),
                     ),
                   ],
                 ),
@@ -2485,7 +2695,9 @@ class _IdeaActionRowState extends State<_IdeaActionRow> {
               Icon(
                 Icons.arrow_forward_ios_rounded,
                 size: 14,
-                color: _hovered ? const Color(0xFF2A98FF) : const Color(0xFF6F7A8F),
+                color: _hovered
+                    ? const Color(0xFF2A98FF)
+                    : const Color(0xFF6F7A8F),
               ),
             ],
           ),
@@ -2494,4 +2706,3 @@ class _IdeaActionRowState extends State<_IdeaActionRow> {
     );
   }
 }
-

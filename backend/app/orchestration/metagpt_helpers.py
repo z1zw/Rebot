@@ -102,9 +102,10 @@ def build_product_prd_contract(*, task: str, guidance: str) -> str:
         "3) Functional Scope (MVP): list concrete features in-scope and out-of-scope.\n"
         "4) Interaction Spec: key interactions, controls, and feedback states.\n"
         "5) State Model: app/game states, transitions, and error/empty/loading states.\n"
-        "6) Visual Spec: layout regions, hierarchy, responsive behavior, and style tokens.\n"
+        "6) Visual Spec: layout regions, hierarchy, responsive behavior, style tokens, and tabbed information architecture.\n"
         "7) Runtime Spec: startup path, dependencies, and local run command readiness.\n"
         "8) Quality Gates: no placeholders/TODOs, complete handlers, executable result.\n"
+        "9) Production UX: use multi-tab/segmented navigation for complex screens and progressive disclosure.\n"
         f"Task: {task or 'N/A'}\n"
         f"Guidance: {guidance or 'N/A'}\n"
     )
