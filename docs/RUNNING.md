@@ -166,6 +166,13 @@ Expected for full local preview coverage:
 - `frameworks.vue.ready = true`
 - `frameworks.flutter.ready = true`
 
+Visual quality gate thresholds (optional tuning):
+
+```powershell
+$env:REBOT_VISUAL_MIN_GAME="84"
+$env:REBOT_VISUAL_MIN_GENERAL="76"
+```
+
 ## 12) Repository hygiene cleanup (one-time)
 
 If `git status` is polluted by generated/cache files, run:

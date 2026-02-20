@@ -1362,6 +1362,18 @@ class MultiAgentScheduler:
                     missing_requirements=[str(x).strip() for x in semantic_missing if str(x).strip()],
                 )
                 await self.emit("console_log", {"text": f"[quality_gate] semantic_revise={semantic_summary}", "level": "default"})
+            visual_reasons = [r for r in reasons if r.startswith("visual_")]
+            if visual_reasons:
+                current, visual_summary = await self._revise_with_visual_polish(
+                    task=task,
+                    artifacts=current,
+                    framework=framework,
+                    ui_preset=ui_preset,
+                    visual_reasons=visual_reasons,
+                    visual_score=visual_score,
+                    task_guidance=task_guidance,
+                )
+                await self.emit("console_log", {"text": f"[quality_gate] visual_polish={visual_summary}", "level": "default"})
             current, revise_summary = await self._revise_with_review_issues(
                 task=task,
                 artifacts=current,
@@ -1453,9 +1465,14 @@ class MultiAgentScheduler:
             except Exception:
                 visual_total = 0.0
             is_game_task = bool(task_guidance and "game" in (task_guidance.guidance or "").lower())
-            min_visual = 78.0 if is_game_task else 70.0
+            min_visual_game = float(os.getenv("REBOT_VISUAL_MIN_GAME", "84"))
+            min_visual_general = float(os.getenv("REBOT_VISUAL_MIN_GENERAL", "76"))
+            min_visual = min_visual_game if is_game_task else min_visual_general
             if visual_total < min_visual:
                 reasons.append(f"visual_total_lt_{int(min_visual)}")
+            verdict = str(visual_score.get("verdict") or "").strip().lower()
+            if verdict == "fail":
+                reasons.append("visual_verdict_fail")
             scores_raw = visual_score.get("scores")
             if isinstance(scores_raw, dict):
                 low_dims = []
@@ -1474,6 +1491,24 @@ class MultiAgentScheduler:
                     tab_score = 100.0
                 if tab_score < 65.0:
                     reasons.append("visual_tabbed_information_architecture_lt_65")
+                def _score_of(name: str, fallback: float = 100.0) -> float:
+                    raw = scores_raw.get(name)
+                    if raw is None:
+                        return fallback
+                    try:
+                        return float(raw)
+                    except Exception:
+                        return fallback
+                if _score_of("design_tokens") < 72.0:
+                    reasons.append("visual_design_tokens_lt_72")
+                if _score_of("visual_hierarchy") < 72.0:
+                    reasons.append("visual_hierarchy_lt_72")
+                if _score_of("motion_feedback") < 68.0:
+                    reasons.append("visual_motion_feedback_lt_68")
+                if _score_of("color_palette_depth") < 70.0:
+                    reasons.append("visual_color_palette_depth_lt_70")
+                if is_game_task and _score_of("game_polish") < 72.0:
+                    reasons.append("visual_game_polish_lt_72")
         if isinstance(semantic_roundtrip, dict):
             try:
                 coverage = float(semantic_roundtrip.get("coverage_score") or 0.0)
@@ -1618,6 +1653,140 @@ class MultiAgentScheduler:
         await self.emit("file_done", {"path": patched.path, "status": "done", "content": patched.content})
         rebuilt = [by_path[a.path] for a in artifacts if a.path in by_path]
         return rebuilt, f"patched={patched.path} missing={len(missing)}"
+
+    def _select_visual_targets(
+        self,
+        *,
+        artifacts: list[GeneratedArtifact],
+        framework: str,
+    ) -> list[GeneratedArtifact]:
+        if not artifacts:
+            return []
+        fw = (framework or "").strip().lower()
+        by_path = {a.path.strip().replace("\\", "/").lower(): a for a in artifacts}
+        by_name = {Path(a.path).name.lower(): a for a in artifacts}
+        picks: list[GeneratedArtifact] = []
+        ordered: list[str]
+        if fw == "flutter":
+            ordered = [
+                "lib/main.dart",
+                "main.dart",
+                "lib/theme.dart",
+                "lib/app_theme.dart",
+            ]
+        elif fw in {"react", "nextjs", "vue", "uniapp", "html", "general"}:
+            ordered = [
+                "style.css",
+                "styles.css",
+                "src/styles.css",
+                "index.html",
+                "game.js",
+                "main.js",
+                "src/main.js",
+                "app.tsx",
+                "app.jsx",
+            ]
+        else:
+            ordered = ["index.html", "main.py", "main.js"]
+
+        for key in ordered:
+            k = key.lower()
+            hit = by_path.get(k)
+            if hit is None:
+                hit = by_name.get(Path(k).name)
+            if hit is not None and all(p.path != hit.path for p in picks):
+                picks.append(hit)
+            if len(picks) >= 2:
+                break
+        if not picks:
+            picks.append(artifacts[0])
+        return picks
+
+    def _visual_focus_tokens(
+        self,
+        *,
+        visual_reasons: list[str],
+        visual_score: dict[str, Any],
+        task_guidance: TaskTypeGuidance,
+    ) -> list[str]:
+        out: list[str] = []
+        score_raw = visual_score.get("scores")
+        scores = score_raw if isinstance(score_raw, dict) else {}
+        if any("design_tokens" in x for x in visual_reasons):
+            out.append("Define and use explicit visual tokens (color/spacing/radius/shadow/typography).")
+        if any("hierarchy" in x for x in visual_reasons):
+            out.append("Strengthen visual hierarchy with non-flat surfaces, card depth, and contrast.")
+        if any("motion" in x for x in visual_reasons):
+            out.append("Add meaningful motion/feedback states (hover/active/disabled/transition).")
+        if any("tabbed" in x for x in visual_reasons):
+            out.append("Use segmented/tabbed information architecture with active state switching.")
+        if any("game_polish" in x for x in visual_reasons):
+            out.append("Improve game HUD and play loop polish (score/lives/pause/restart/win/lose visibility).")
+        if not out:
+            out.append("Improve overall UI polish while preserving runtime correctness.")
+        if "game" in (task_guidance.guidance or "").lower():
+            out.append("Keep gameplay fully interactive, not static narrative output.")
+        weak_dims: list[str] = []
+        for k, v in scores.items():
+            try:
+                if float(v) < 72.0:
+                    weak_dims.append(str(k))
+            except Exception:
+                continue
+        if weak_dims:
+            out.append(f"Prioritize weak dimensions: {', '.join(weak_dims[:6])}.")
+        return out
+
+    async def _revise_with_visual_polish(
+        self,
+        *,
+        task: str,
+        artifacts: list[GeneratedArtifact],
+        framework: str,
+        ui_preset: dict[str, Any],
+        visual_reasons: list[str],
+        visual_score: dict[str, Any],
+        task_guidance: TaskTypeGuidance,
+    ) -> tuple[list[GeneratedArtifact], str]:
+        if not visual_reasons:
+            return artifacts, "skip:no_visual_reason"
+        targets = self._select_visual_targets(artifacts=artifacts, framework=framework)
+        if not targets:
+            return artifacts, "skip:no_visual_target"
+        by_path: dict[str, GeneratedArtifact] = {a.path: a for a in artifacts}
+        focus = self._visual_focus_tokens(
+            visual_reasons=visual_reasons,
+            visual_score=visual_score,
+            task_guidance=task_guidance,
+        )
+        touched: list[str] = []
+        for target in targets[:2]:
+            reason = (
+                "[visual_polish] reasons:\n"
+                + "\n".join(f"- {x}" for x in visual_reasons[:10])
+                + "\nfocus:\n"
+                + "\n".join(f"- {x}" for x in focus[:8])
+                + "\nconstraints:\n"
+                "- Keep runtime behavior unchanged and executable.\n"
+                "- Do not remove existing gameplay/interaction logic.\n"
+                "- Avoid plain white default appearance.\n"
+            )
+            patched = await self._repair_single_artifact(
+                task=task,
+                framework=framework,
+                ui_preset=ui_preset,
+                artifact=target,
+                issue={"path": target.path, "reason": reason},
+                all_artifacts=by_path,
+            )
+            by_path[patched.path] = patched
+            if patched.content != target.content:
+                touched.append(patched.path)
+                await self.emit("file_done", {"path": patched.path, "status": "done", "content": patched.content})
+        rebuilt = [by_path[a.path] for a in artifacts if a.path in by_path]
+        if not touched:
+            return rebuilt, "patched=0"
+        return rebuilt, f"patched={len(touched)} files={','.join(touched[:4])}"
 
     async def _revise_with_review_issues(
         self,
@@ -1785,6 +1954,8 @@ class MultiAgentScheduler:
             return "responsive"
         if "tab" in r or "segmented" in r:
             return "tabbed_information_architecture"
+        if "visual_polish" in r:
+            return "visual_polish"
         if "visual" in r or "typography" in r or "design token" in r:
             return "visual"
         if fw == "flutter" or p.endswith(".dart"):
@@ -1811,6 +1982,8 @@ class MultiAgentScheduler:
             return "Use relative units and responsive layout primitives suitable for target framework."
         if k == "tabbed_information_architecture":
             return "Implement multi-tab/segmented navigation with active states and content switching."
+        if k == "visual_polish":
+            return "Apply production-grade UI polish: stronger palette, hierarchy, interaction feedback, and cohesive layout."
         if k == "visual":
             return "Add design tokens, stronger hierarchy, and non-flat background while keeping usability."
         if fw == "flutter" or p.endswith(".dart"):
@@ -2358,6 +2531,8 @@ class MultiAgentScheduler:
         )
         if plain_white and hierarchy_hits > 0:
             hierarchy_hits -= 1
+        if plain_white:
+            hierarchy_hits = max(0, hierarchy_hits - 1)
         visual_hierarchy = score_by_hits(hierarchy_hits, target=4)
 
         typo_hits = 0
@@ -2367,6 +2542,8 @@ class MultiAgentScheduler:
             typo_hits += 1
         if "line-height" in low or "height: 1." in low or "letter-spacing" in low:
             typo_hits += 1
+        if "times new roman" in low or "font-family: serif" in low:
+            typo_hits = max(0, typo_hits - 1)
         typography = score_by_hits(typo_hits, target=4)
 
         feedback_hits = 0
@@ -2379,6 +2556,18 @@ class MultiAgentScheduler:
         if "disabled" in low:
             feedback_hits += 1
         motion_feedback = score_by_hits(feedback_hits, target=4)
+
+        color_hits = 0
+        unique_hex = set(re.findall(r"#[0-9a-f]{3,8}", low))
+        if len(unique_hex) >= 4:
+            color_hits += 2
+        elif len(unique_hex) >= 2:
+            color_hits += 1
+        if "linear-gradient" in low or "radial-gradient" in low:
+            color_hits += 1
+        if "var(--" in low or "colorscheme" in low:
+            color_hits += 1
+        color_palette_depth = score_by_hits(color_hits, target=4)
 
         tab_hits = 0
         if is_web:
@@ -2429,10 +2618,11 @@ class MultiAgentScheduler:
             game_polish = score_by_hits(polish_hits, target=4)
 
         total = (
-            design_tokens * 0.22
-            + visual_hierarchy * 0.22
+            design_tokens * 0.2
+            + visual_hierarchy * 0.2
             + typography * 0.14
-            + motion_feedback * 0.16
+            + motion_feedback * 0.14
+            + color_palette_depth * 0.16
             + tabbed_information_architecture * 0.12
             + game_polish * 0.14
         )
@@ -2443,6 +2633,7 @@ class MultiAgentScheduler:
                 "visual_hierarchy": round(visual_hierarchy, 2),
                 "typography": round(typography, 2),
                 "motion_feedback": round(motion_feedback, 2),
+                "color_palette_depth": round(color_palette_depth, 2),
                 "tabbed_information_architecture": round(tabbed_information_architecture, 2),
                 "game_polish": round(game_polish, 2),
             },

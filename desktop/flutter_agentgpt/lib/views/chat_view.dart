@@ -1427,6 +1427,11 @@ class _QualitySummaryPanel extends StatelessWidget {
                         "${visualScores["visual_hierarchy"] ?? 0}") ??
                     0),
             _ScoreBar(
+                label: "Color",
+                value: double.tryParse(
+                        "${visualScores["color_palette_depth"] ?? 0}") ??
+                    0),
+            _ScoreBar(
                 label: "Type",
                 value:
                     double.tryParse("${visualScores["typography"] ?? 0}") ?? 0),
