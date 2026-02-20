@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2048 Game</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-th-large"></i> 2048</h1>
+            <p class="subtitle">Join the numbers and get to the <strong>2048 tile!</strong></p>
+        </header>
+
+        <div class="game-info">
+            <div class="score-container">
+                <div class="score-box">
+                    <div class="score-label">SCORE</div>
+                    <div class="score-value" id="score">0</div>
+                </div>
+                <div class="score-box">
+                    <div class="score-label">BEST</div>
+                    <div class="score-value" id="best">0</div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button id="new-game" class="btn btn-primary">
+                    <i class="fas fa-plus-circle"></i> New Game
+                </button>
+                <button id="undo" class="btn btn-secondary" title="Undo last move">
+                    <i class="fas fa-undo"></i> Undo
+                </button>
+                <div class="game-instructions">
+                    <button id="how-to-play" class="btn-instructions">
+                        <i class="fas fa-question-circle"></i> How to Play
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-container">
+            <div class="grid-container">
+                <div class="grid" id="grid"></div>
+                <div class="game-over" id="game-over">
+                    <h2>Game Over!</h2>
+                    <p id="game-over-message">You ran out of moves.</p>
+                    <button id="try-again" class="btn btn-primary">Try Again</button>
+                </div>
+                <div class="win-message" id="win-message">
+                    <h2>You Win!</h2>
+                    <p>You reached the 2048 tile!</p>
+                    <button id="continue-playing" class="btn btn-primary">Continue Playing</button>
+                    <button id="new-game-win" class="btn btn-secondary">New Game</button>
+                </div>
+            </div>
+
+            <div class="instructions-panel" id="instructions-panel">
+                <h3><i class="fas fa-info-circle"></i> How to Play 2048</h3>
+                <ul>
+                    <li>Use <strong>arrow keys</strong> or <strong>WASD</strong> or <strong>swipe</strong> to move the tiles.</li>
+                    <li>When two tiles with the same number touch, they <strong>merge into one</strong> with their sum.</li>
+                    <li>After each move, a new tile (2 or 4) appears in a random empty spot.</li>
+                    <li>Get a <strong>2048 tile</strong> to win. Keep playing to get a higher score!</li>
+                    <li>The game ends when no more moves are possible.</li>
+                </ul>
+                <div class="key-hint">
+                    <div class="key"><i class="fas fa-arrow-up"></i> or W</div>
+                    <div class="key"><i class="fas fa-arrow-left"></i> or A</div>
+                    <div class="key"><i class="fas fa-arrow-down"></i> or S</div>
+                    <div class="key"><i class="fas fa-arrow-right"></i> or D</div>
+                </div>
+                <button id="close-instructions" class="btn btn-secondary">Got it!</button>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Created with <i class="fas fa-heart"></i> by 2048 Game</p>
+            <p class="footer-links">
+                <button id="keyboard-controls" class="link-btn">Keyboard Controls</button>
+                |
+                <button id="about-game" class="link-btn">About 2048</button>
+            </p>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>

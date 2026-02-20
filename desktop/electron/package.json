@@ -1,0 +1,12 @@
+{
+  "name": "rebot-desktop",
+  "version": "0.1.0",
+  "main": "main.js",
+  "scripts": {
+    "dev": "electron .",
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^29.4.1"
+  }
+}

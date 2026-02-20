@@ -1,0 +1,17 @@
+fastapi>=0.111
+uvicorn>=0.30
+redis>=5.0
+aio-pika>=9.4
+sqlmodel>=0.0.21
+sentry-sdk>=2.0
+launchdarkly-server-sdk>=8.0
+supabase>=2.4
+pyclamd>=0.4.0
+tree-sitter>=0.20.1
+tree-sitter-languages>=1.10.2
+chromadb>=0.4.22
+prometheus-client>=0.20
+opentelemetry-api>=1.24
+opentelemetry-sdk>=1.24
+opentelemetry-exporter-otlp>=1.24
+opentelemetry-instrumentation-fastapi>=0.45b0

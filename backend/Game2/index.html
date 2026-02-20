@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2048 Game</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1><i class="fas fa-th-large"></i> 2048</h1>
+            <p class="subtitle">Join the numbers and get to the <strong>2048 tile!</strong></p>
+        </header>
+
+        <div class="game-info">
+            <div class="score-container">
+                <div class="score-box">
+                    <div class="score-label">SCORE</div>
+                    <div class="score-value" id="score">0</div>
+                </div>
+                <div class="score-box">
+                    <div class="score-label">BEST</div>
+                    <div class="score-value" id="best">0</div>
+                </div>
+            </div>
+            <div class="controls">
+                <button id="new-game" class="btn btn-primary">
+                    <i class="fas fa-plus-circle"></i> New Game
+                </button>
+                <button id="undo" class="btn btn-secondary" title="Undo last move">
+                    <i class="fas fa-undo"></i> Undo
+                </button>
+                <div class="instructions-toggle">
+                    <button id="how-to-play" class="btn btn-help">
+                        <i class="fas fa-question-circle"></i> How to Play
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-container">
+            <div class="grid" id="grid"></div>
+            <div class="game-over" id="game-over">
+                <h2>Game Over!</h2>
+                <p id="game-over-message">You can do better!</p>
+                <button id="try-again" class="btn btn-primary">
+                    <i class="fas fa-redo"></i> Try Again
+                </button>
+            </div>
+            <div class="win-message" id="win-message">
+                <h2>You Win!</h2>
+                <p>You reached 2048. Keep going?</p>
+                <div class="win-buttons">
+                    <button id="continue" class="btn btn-continue">
+                        <i class="fas fa-forward"></i> Continue
+                    </button>
+                    <button id="new-game-win" class="btn btn-primary">
+                        <i class="fas fa-plus-circle"></i> New Game
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="instructions" id="instructions">
+            <div class="instructions-content">
+                <h3><i class="fas fa-gamepad"></i> How to Play 2048</h3>
+                <ul>
+                    <li><strong>Goal:</strong> Combine tiles of the same number to reach <strong>2048</strong>!</li>
+                    <li><strong>Move:</strong> Use <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> Arrow Keys or Swipe (on touch devices).</li>
+                    <li><strong>Merge:</strong> When two tiles with the same number touch, they merge into one with their sum.</li>
+                    <li><strong>After each move:</strong> A new tile (2 or 4) appears in a random empty spot.</li>
+                    <li><strong>Game Over:</strong> When no moves are possible, the game ends.</li>
+                </ul>
+                <button id="close-instructions" class="btn btn-help">
+                    <i class="fas fa-times"></i> Close
+                </button>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <p>Created with <i class="fas fa-heart"></i> by Coder Agent | 
+                <a href="https://github.com" target="_blank"><i class="fab fa-github"></i> GitHub</a> | 
+                <a href="#" id="reset-best"><i class="fas fa-trash-alt"></i> Reset Best Score</a>
+            </p>
+        </footer>
+    </div>
+
+    <script defer src="game.js"></script>
+</body>
+</html>

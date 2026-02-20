@@ -1,0 +1,112 @@
+# Cheese Game - Instructions and Controls
+
+## Game Overview
+Cheese Game is a simple, fun arcade-style game where you control a mouse character trying to collect cheese while avoiding obstacles. The game features increasing difficulty, score tracking, and responsive controls for both desktop and mobile devices.
+
+## Objective
+- Collect as many cheese pieces as possible
+- Avoid obstacles (cats, traps, walls)
+- Survive as long as you can
+- Beat your high score
+
+## Controls
+
+### Desktop/Laptop
+- **Arrow Keys** or **WASD**: Move the mouse character
+  - Up/W: Move up
+  - Down/S: Move down
+  - Left/A: Move left
+  - Right/D: Move right
+- **Spacebar**: Pause/Resume game
+- **R Key**: Restart game (when game over)
+- **ESC Key**: Return to main menu
+
+### Mobile/Touch Devices
+- **On-screen D-pad**: Touch the directional buttons to move
+- **Tap screen**: Quick restart when game over
+- **Pause Button**: Tap to pause/resume
+
+## Game Elements
+
+### Player (Mouse)
+- You control a mouse character
+- Moves in four directions
+- Cannot pass through obstacles
+- Collects cheese for points
+
+### Cheese
+- Yellow cheese pieces appear randomly
+- Each cheese collected: +10 points
+- Collecting cheese may trigger special events
+
+### Obstacles
+- **Cats**: Move randomly - avoid at all costs!
+- **Traps**: Stationary obstacles
+- **Walls**: Level boundaries
+
+### Power-ups (if implemented)
+- **Speed Boost**: Temporary speed increase
+- **Shield**: Temporary protection from cats
+- **Double Points**: Double score for limited time
+
+## Scoring System
+- Cheese collected: +10 points each
+- Survival bonus: +1 point per second
+- High score is saved locally in your browser
+- Bonus points for consecutive cheese collection
+
+## Difficulty Levels
+The game gets progressively harder:
+1. **Easy**: Slow cats, few obstacles
+2. **Medium**: Faster cats, more obstacles
+3. **Hard**: Fast cats, many obstacles, limited space
+
+## Game States
+1. **Main Menu**: Start game, view instructions
+2. **Playing**: Active gameplay
+3. **Paused**: Game temporarily stopped
+4. **Game Over**: Player hit an obstacle
+5. **Win Screen**: Completed level/challenge
+
+## Tips for Success
+1. Plan your route to collect multiple cheese pieces
+2. Keep moving - stationary mice are easy targets
+3. Watch cat movement patterns
+4. Use the edges of the screen strategically
+5. Don't get trapped in corners
+
+## Technical Requirements
+- Modern web browser (Chrome, Firefox, Safari, Edge)
+- JavaScript enabled
+- Screen size: Minimum 320x480 pixels
+- Touch screen for mobile play
+
+## Troubleshooting
+If the game doesn't work properly:
+1. Refresh the page (F5 or Ctrl+R)
+2. Clear browser cache if controls are unresponsive
+3. Ensure JavaScript is enabled
+4. Try a different browser if issues persist
+5. Check console for errors (F12 → Console)
+
+## Accessibility Features
+- Keyboard controls for motor-impaired users
+- High contrast mode available in settings
+- Screen reader support for game status
+- Adjustable game speed in options
+
+## Saving Progress
+- High score is automatically saved
+- Game state is not saved between sessions
+- No login required - all data stored locally
+
+## Credits
+Game developed as a fun educational project. Inspired by classic arcade games.
+
+## Version Information
+Current version: 1.0
+Last updated: 2024
+
+---
+
+**Enjoy the game! Remember: The early mouse gets the cheese!**

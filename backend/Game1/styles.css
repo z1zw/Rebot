@@ -1,0 +1,395 @@
+/* 2048 Game Styles */
+:root {
+    --primary-color: #776e65;
+    --secondary-color: #bbada0;
+    --tile-bg: #eee4da;
+    --text-color: #776e65;
+    --text-light: #f9f6f2;
+    --board-bg: #bbada0;
+    --tile-gap: 10px;
+    --tile-size: 100px;
+    --font-family: 'Clear Sans', 'Helvetica Neue', Arial, sans-serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-family);
+    background: #faf8ef;
+    color: var(--primary-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 500px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+h1 {
+    font-size: 70px;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.score-container {
+    display: flex;
+    gap: 10px;
+}
+
+.score-box {
+    background: var(--secondary-color);
+    color: var(--text-light);
+    padding: 10px 20px;
+    border-radius: 6px;
+    text-align: center;
+    min-width: 100px;
+}
+
+.score-title {
+    font-size: 13px;
+    text-transform: uppercase;
+    font-weight: bold;
+}
+
+.score-value {
+    font-size: 25px;
+    font-weight: bold;
+    margin-top: 5px;
+}
+
+.game-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.description {
+    font-size: 18px;
+    line-height: 1.4;
+    color: var(--primary-color);
+    max-width: 60%;
+}
+
+.restart-btn {
+    background: #8f7a66;
+    color: var(--text-light);
+    border: none;
+    border-radius: 6px;
+    padding: 12px 25px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.restart-btn:hover {
+    background: #7c6b5a;
+}
+
+.game-container {
+    position: relative;
+    margin: 20px 0;
+}
+
+.grid-container {
+    background: var(--board-bg);
+    border-radius: 10px;
+    padding: var(--tile-gap);
+    position: relative;
+    width: calc(var(--tile-size) * 4 + var(--tile-gap) * 5);
+    height: calc(var(--tile-size) * 4 + var(--tile-gap) * 5);
+    margin: 0 auto;
+}
+
+.grid-row {
+    display: flex;
+    margin-bottom: var(--tile-gap);
+}
+
+.grid-row:last-child {
+    margin-bottom: 0;
+}
+
+.grid-cell {
+    width: var(--tile-size);
+    height: var(--tile-size);
+    background: rgba(238, 228, 218, 0.35);
+    border-radius: 6px;
+    margin-right: var(--tile-gap);
+}
+
+.grid-cell:last-child {
+    margin-right: 0;
+}
+
+.tile {
+    position: absolute;
+    width: var(--tile-size);
+    height: var(--tile-size);
+    border-radius: 6px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    font-size: 40px;
+    transition: all 0.15s ease-in-out;
+    z-index: 10;
+}
+
+.tile-2 {
+    background: #eee4da;
+    color: var(--text-color);
+}
+
+.tile-4 {
+    background: #ede0c8;
+    color: var(--text-color);
+}
+
+.tile-8 {
+    background: #f2b179;
+    color: var(--text-light);
+}
+
+.tile-16 {
+    background: #f59563;
+    color: var(--text-light);
+}
+
+.tile-32 {
+    background: #f67c5f;
+    color: var(--text-light);
+}
+
+.tile-64 {
+    background: #f65e3b;
+    color: var(--text-light);
+}
+
+.tile-128 {
+    background: #edcf72;
+    color: var(--text-light);
+    font-size: 35px;
+}
+
+.tile-256 {
+    background: #edcc61;
+    color: var(--text-light);
+    font-size: 35px;
+}
+
+.tile-512 {
+    background: #edc850;
+    color: var(--text-light);
+    font-size: 35px;
+}
+
+.tile-1024 {
+    background: #edc53f;
+    color: var(--text-light);
+    font-size: 30px;
+}
+
+.tile-2048 {
+    background: #edc22e;
+    color: var(--text-light);
+    font-size: 30px;
+}
+
+.game-message {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(238, 228, 218, 0.85);
+    border-radius: 10px;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+}
+
+.message-show {
+    display: flex;
+}
+
+.game-message p {
+    font-size: 50px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: var(--primary-color);
+}
+
+.message-btn {
+    background: #8f7a66;
+    color: var(--text-light);
+    border: none;
+    border-radius: 6px;
+    padding: 15px 30px;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.instructions {
+    margin-top: 30px;
+    font-size: 17px;
+    line-height: 1.5;
+    color: var(--primary-color);
+    max-width: 500px;
+}
+
+.instructions p {
+    margin-bottom: 10px;
+}
+
+.instructions strong {
+    color: #8f7a66;
+}
+
+footer {
+    margin-top: 30px;
+    font-size: 16px;
+    color: var(--primary-color);
+    text-align: center;
+}
+
+footer a {
+    color: #8f7a66;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+footer a:hover {
+    text-decoration: underline;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+    :root {
+        --tile-size: 70px;
+        --tile-gap: 8px;
+    }
+
+    h1 {
+        font-size: 50px;
+    }
+
+    .score-box {
+        min-width: 80px;
+        padding: 8px 15px;
+    }
+
+    .score-value {
+        font-size: 22px;
+    }
+
+    .game-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .description {
+        max-width: 100%;
+        font-size: 16px;
+    }
+
+    .restart-btn {
+        align-self: flex-end;
+        padding: 10px 20px;
+        font-size: 16px;
+    }
+
+    .grid-container {
+        width: calc(var(--tile-size) * 4 + var(--tile-gap) * 5);
+        height: calc(var(--tile-size) * 4 + var(--tile-gap) * 5);
+    }
+
+    .tile {
+        font-size: 30px;
+    }
+
+    .tile-128,
+    .tile-256,
+    .tile-512 {
+        font-size: 25px;
+    }
+
+    .tile-1024,
+    .tile-2048 {
+        font-size: 22px;
+    }
+
+    .game-message p {
+        font-size: 40px;
+    }
+
+    .message-btn {
+        padding: 12px 25px;
+        font-size: 18px;
+    }
+
+    .instructions {
+        font-size: 15px;
+    }
+}
+
+@media (max-width: 400px) {
+    :root {
+        --tile-size: 60px;
+        --tile-gap: 6px;
+    }
+
+    h1 {
+        font-size: 40px;
+    }
+
+    .score-box {
+        min-width: 70px;
+        padding: 6px 12px;
+    }
+
+    .score-title {
+        font-size: 11px;
+    }
+
+    .score-value {
+        font-size: 20px;
+    }
+
+    .tile {
+        font-size: 25px;
+    }
+
+    .tile-128,
+    .tile-256,
+    .tile-512 {
+        font-size: 22px;
+    }
+
+    .tile-1024,
+    .tile-2048 {
+        font-size: 18px;
+    }
+}
